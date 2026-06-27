@@ -10,6 +10,7 @@ export default function HeroVideo() {
   const [transformStyle, setTransformStyle] = useState({
     transform: 'translate(0px, 0px) scale(0.748)',
   })
+  const [videoScale, setVideoScale] = useState(1)
 
   useEffect(() => {
     const video = videoRef.current
@@ -45,12 +46,16 @@ export default function HeroVideo() {
         scaleActual = H / 1080
       }
 
+      const isMobile = W < 640
+
       // Raw optimization values calculated in 1920x1080 space:
       // S_raw = 0.748, dX_raw = 62, dY_raw = 42
-      const dX = 62 * scaleActual
-      const dY = 42 * scaleActual
-      const S = 0.748 * scaleActual
+      // On mobile: use a much larger scale and centre the product
+      const dX = isMobile ? 0 : 62 * scaleActual
+      const dY = isMobile ? 0 : 42 * scaleActual
+      const S  = isMobile ? scaleActual * 2.2 : 0.748 * scaleActual
 
+      setVideoScale(isMobile ? 2 : 1)
       setTransformStyle({
         transform: `translate(${dX}px, ${dY}px) scale(${S})`,
       })
@@ -79,7 +84,7 @@ export default function HeroVideo() {
         muted
         playsInline
         preload="auto"
-        style={{ transition: 'opacity 0.6s ease', opacity: showImage ? 0 : 1 }}
+        style={{ transition: 'opacity 0.6s ease', opacity: showImage ? 0 : 1, transform: `scale(${videoScale})`, transformOrigin: 'center center' }}
         className="absolute inset-0 w-full h-full object-cover object-center"
       />
 

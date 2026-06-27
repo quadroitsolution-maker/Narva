@@ -76,16 +76,16 @@ export default function Home() {
         {/* ═══════════════════════════════════════════
             HERO SECTION — unchanged
         ═══════════════════════════════════════════ */}
-        <section className="relative w-full min-h-[94vh] overflow-hidden bg-[#010101] flex flex-col">
+        <section className="relative w-full sm:min-h-[94vh] overflow-hidden bg-[#010101] flex flex-col">
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-premium-gold/8 rounded-full blur-[140px]" />
           </div>
-          <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className="relative h-[68vh] sm:absolute sm:inset-0 sm:h-auto z-10 pointer-events-none">
             <HeroVideo />
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-40 z-20 bg-gradient-to-t from-[#010101] to-transparent pointer-events-none" />
 
-          <div className="hero-reveal relative z-30 flex items-center justify-between flex-1 min-h-[80vh] px-6 sm:px-10 lg:px-16 py-10">
+          <div className="hero-reveal relative z-30 flex items-center justify-between sm:flex-1 sm:min-h-[80vh] px-6 sm:px-10 lg:px-16 py-8 sm:py-10 bg-[#010101] sm:bg-transparent">
             <div className="max-w-md space-y-7">
               <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-premium-gold">
                 Doctor-Formulated · Sleep &amp; Recovery
