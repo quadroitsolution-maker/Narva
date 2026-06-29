@@ -19,6 +19,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const [reviews, setReviews] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'description' | 'ingredients' | 'dosage'>('description')
   const [purchaseType, setPurchaseType] = useState<'one' | 'sub'>('one')
+  const [activeImageIdx, setActiveImageIdx] = useState(0)
   
   // Review Form States
   const [reviewName, setReviewName] = useState('')
@@ -137,25 +138,27 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           {/* Left: 3D Product Interactive Viewer & Images */}
           <div className="space-y-8 sticky top-28">
             <div className="glass-panel rounded-3xl p-6 flex items-center justify-center bg-warm-beige/10 dark:bg-dark-card/10 border border-premium-gold/15">
-              <div className="relative flex h-[350px] w-full items-center justify-center cursor-pointer select-none overflow-visible">
-                {/* Soft Lighting Backglow */}
-                <div className="absolute inset-0 bg-premium-gold/20 blur-3xl -z-10 rounded-full scale-150 animate-pulse" />
-                <div className="relative h-[250px] w-[150px] rounded-[30px] border border-premium-gold/30 shadow-2xl overflow-hidden flex items-center justify-center bg-[#1e130c]/90">
-                  <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
-                </div>
-                {/* Shadow */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[110px] h-[15px] bg-black/30 rounded-full blur-md" />
+              <div className="relative w-full h-[350px] overflow-hidden rounded-2xl flex items-center justify-center">
+                <Image src={product.images[activeImageIdx] || product.images[0]} alt={product.name} fill className="object-contain" />
               </div>
             </div>
             
             {/* Gallery fallback */}
-            <div className="grid grid-cols-3 gap-4">
-              {product.images.map((img: string, idx: number) => (
-                <div key={idx} className="relative h-20 rounded-xl overflow-hidden border border-premium-gold/10 hover:border-premium-gold transition-colors bg-warm-beige/20">
-                  <Image src={img} alt="product view" fill className="object-cover" />
-                </div>
-              ))}
-            </div>
+            {product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-4">
+                {product.images.map((img: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIdx(idx)}
+                    className={`relative h-20 rounded-xl overflow-hidden border transition-all bg-warm-beige/20 ${
+                      activeImageIdx === idx ? 'border-premium-gold scale-95 shadow-md' : 'border-premium-gold/10 hover:border-premium-gold/40'
+                    }`}
+                  >
+                    <Image src={img} alt="product view" fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right: Product specifications & Pricing details */}
