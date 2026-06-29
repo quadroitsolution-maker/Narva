@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
-const ADMIN_PIN = '1234'
+const ADMIN_PIN = 'Narva@!89723Z_w2'
 
 const KPI = { revenue: 24780, orders: 62, subscriptions: 148, newCustomers: 28 }
 
@@ -151,17 +151,16 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </div>
 
           <div className="space-y-3 text-left">
-            <label className="text-[10px] text-white/40 font-bold uppercase tracking-widest block">Admin PIN</label>
+            <label className="text-[10px] text-white/40 font-bold uppercase tracking-widest block">Admin Passphrase</label>
             <div className="relative">
               <input
                 type={showPin ? 'text' : 'password'}
-                inputMode="numeric"
-                maxLength={6}
+                maxLength={32}
                 value={pin}
                 onChange={e => { setPin(e.target.value); setError(false) }}
                 onKeyDown={e => e.key === 'Enter' && attempt()}
-                placeholder="• • • •"
-                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.4em] focus:outline-none transition-colors ${error ? 'border-red-500/70' : 'border-white/10 focus:border-premium-gold/50'}`}
+                placeholder="Enter admin passphrase"
+                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-center text-sm tracking-wide focus:outline-none transition-colors ${error ? 'border-red-500/70' : 'border-white/10 focus:border-premium-gold/50'}`}
               />
               <button
                 type="button"
@@ -171,7 +170,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {error && <p className="text-[11px] text-red-400 text-center">Incorrect PIN. Try again.</p>}
+            {error && <p className="text-[11px] text-red-400 text-center">Incorrect Passphrase. Try again.</p>}
           </div>
 
           <button
@@ -180,8 +179,6 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           >
             Enter Console <ChevronRight size={14} />
           </button>
-
-          <p className="text-[10px] text-white/20">Hint: try 1234</p>
         </div>
       </motion.div>
     </div>
