@@ -329,7 +329,7 @@ export default function ProductPage() {
             <div className="space-y-6">
               <div>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-widest text-premium-gold uppercase mb-1">
-                  🎬 Customer Video Reels
+                  Customer Video Reels
                 </span>
                 <h3 className="text-xl font-serif">See What High-Performers Say</h3>
               </div>

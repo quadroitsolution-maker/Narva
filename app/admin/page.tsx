@@ -239,6 +239,9 @@ export default function AdminDashboard() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [customerSearch, setCustomerSearch] = useState('')
 
+  // Reviews sub-tab
+  const [reviewsTab, setReviewsTab] = useState<'pending' | 'published'>('pending')
+
   // Subscriber search
   const [subSearch, setSubSearch] = useState('')
 
@@ -908,21 +911,50 @@ export default function AdminDashboard() {
                 {/* ── REVIEWS ────────────────────────────────────────────────────────── */}
                 {activePanel === 'reviews' && (() => {
                   const pendingReviews = reviews.filter(r => r.status === 'pending')
+                  const approvedReviews = reviews.filter(r => r.status === 'approved')
+                  const currentList = reviewsTab === 'pending' ? pendingReviews : approvedReviews
                   return (
                     <div className="space-y-6">
-                      <div>
-                        <h2 className="font-serif text-3xl font-light">Reviews Moderation</h2>
-                        <p className="text-xs text-matte-black/40 mt-1">{pendingReviews.length} pending review{pendingReviews.length !== 1 ? 's' : ''}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                          <h2 className="font-serif text-3xl font-light">Reviews Moderation</h2>
+                          <p className="text-xs text-matte-black/40 mt-1">{pendingReviews.length} pending · {approvedReviews.length} published reviews</p>
+                        </div>
+                        {/* Sub-tab switcher */}
+                        <div className="flex border border-premium-gold/20 rounded-xl p-1 bg-warm-beige/10 dark:bg-dark-card/15 w-fit">
+                          <button
+                            onClick={() => setReviewsTab('pending')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                              reviewsTab === 'pending'
+                                ? 'bg-premium-gold text-white shadow-md'
+                                : 'text-matte-black/60 dark:text-dark-text/60 hover:text-matte-black dark:hover:text-dark-text'
+                            }`}
+                          >
+                            Pending Queue ({pendingReviews.length})
+                          </button>
+                          <button
+                            onClick={() => setReviewsTab('published')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                              reviewsTab === 'published'
+                                ? 'bg-premium-gold text-white shadow-md'
+                                : 'text-matte-black/60 dark:text-dark-text/60 hover:text-matte-black dark:hover:text-dark-text'
+                            }`}
+                          >
+                            Published Reviews ({approvedReviews.length})
+                          </button>
+                        </div>
                       </div>
 
-                      {pendingReviews.length === 0 ? (
+                      {currentList.length === 0 ? (
                         <div className="glass-panel p-16 rounded-2xl border border-premium-gold/10 text-center">
                           <CheckCircle size={32} className="text-green-500 mx-auto mb-3" />
-                          <p className="font-serif text-lg text-matte-black/50 dark:text-dark-text/50">All reviews moderated</p>
+                          <p className="font-serif text-lg text-matte-black/50 dark:text-dark-text/50">
+                            {reviewsTab === 'pending' ? 'All reviews moderated' : 'No published reviews yet'}
+                          </p>
                         </div>
                       ) : (
                         <div className="grid gap-4">
-                          {pendingReviews.map((r, i) => (
+                          {currentList.map((r, i) => (
                             <div key={i} className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4 md:space-y-0 flex flex-col md:flex-row gap-6 items-start">
                               {r.video_url && (
                                 <div className="w-36 h-56 rounded-xl overflow-hidden bg-black border border-premium-gold/15 flex-shrink-0 relative">
@@ -958,18 +990,29 @@ export default function AdminDashboard() {
                                 </div>
                                 <p className="text-xs text-matte-black/65 dark:text-dark-text/65 leading-relaxed">{r.body}</p>
                                 <div className="flex gap-3 pt-1 border-t border-premium-gold/8">
-                                  <button
-                                    onClick={() => handleReviewStatus(r.id, 'approved')}
-                                    className="flex items-center gap-1.5 bg-green-600 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-green-700 transition-colors"
-                                  >
-                                    <CheckCircle size={11} /> Approve & Publish
-                                  </button>
-                                  <button
-                                    onClick={() => handleReviewStatus(r.id, 'rejected')}
-                                    className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-red-650 transition-colors"
-                                  >
-                                    <XCircle size={11} /> Reject
-                                  </button>
+                                  {r.status === 'pending' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleReviewStatus(r.id, 'approved')}
+                                        className="flex items-center gap-1.5 bg-green-600 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-green-700 transition-colors"
+                                      >
+                                        <CheckCircle size={11} /> Approve & Publish
+                                      </button>
+                                      <button
+                                        onClick={() => handleReviewStatus(r.id, 'rejected')}
+                                        className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-red-650 transition-colors"
+                                      >
+                                        <XCircle size={11} /> Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleReviewStatus(r.id, 'rejected')}
+                                      className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-red-650 transition-colors"
+                                    >
+                                      <XCircle size={11} /> Revoke / Unpublish
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>
