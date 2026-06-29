@@ -362,7 +362,7 @@ export default function Home() {
                 { num: '04', title: 'Stay Consistent', desc: 'Non-habit-forming formula supports healthy hormonal patterns long-term without dependency.' },
               ].map((item) => (
                 <div key={item.num} className="bg-white p-10 space-y-5 group hover:bg-neutral-50 transition-colors">
-                  <span className="text-5xl font-light text-neutral-100 font-serif">{item.num}</span>
+                  <span className="text-5xl font-light text-neutral-300 font-serif">{item.num}</span>
                   <h3 className="text-lg font-serif font-semibold text-[#1a1a1a]">{item.title}</h3>
                   <p className="text-sm text-neutral-500 leading-relaxed">{item.desc}</p>
                 </div>
