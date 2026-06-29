@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   TrendingUp, ShoppingBag, Users, Calendar, AlertTriangle, CheckCircle,
   XCircle, Tag, Star, LogOut, Edit2, Trash2, Search, Plus, X, Mail,
@@ -217,7 +218,7 @@ export default function AdminDashboard() {
 
   // Product edit
   const [editingProduct, setEditingProduct] = useState<any>(null)
-  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '', image_url: '' })
+  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '', images: [] as string[], new_url: '' })
 
   // Product create
   const [isAddingProduct, setIsAddingProduct] = useState(false)
@@ -228,7 +229,8 @@ export default function AdminDashboard() {
     compare_price: '',
     stock_qty: '',
     description: '',
-    image_url: ''
+    images: [] as string[],
+    new_url: ''
   })
 
   // Blog edit
@@ -288,7 +290,8 @@ export default function AdminDashboard() {
       price: String(p.price),
       compare_price: String(p.compare_price || ''),
       stock_qty: String(p.stock_qty),
-      image_url: p.images && p.images.length > 0 ? p.images[0] : ''
+      images: p.images || [],
+      new_url: ''
     })
   }
 
@@ -299,7 +302,7 @@ export default function AdminDashboard() {
       price: parseFloat(editProductForm.price) || editingProduct.price,
       compare_price: parseFloat(editProductForm.compare_price) || editingProduct.compare_price,
       stock_qty: parseInt(editProductForm.stock_qty) || editingProduct.stock_qty,
-      images: editProductForm.image_url ? [editProductForm.image_url] : editingProduct.images
+      images: editProductForm.images
     });
     const allProds = await getProductsAdmin();
     setProducts(allProds);
@@ -316,7 +319,7 @@ export default function AdminDashboard() {
       compare_price: parseFloat(newProductForm.compare_price) || 399,
       description: newProductForm.description || 'Premium formulated health supplement.',
       stock_qty: parseInt(newProductForm.stock_qty) || 50,
-      images: newProductForm.image_url ? [newProductForm.image_url] : []
+      images: newProductForm.images
     })
     const allProds = await getProductsAdmin()
     setProducts(allProds)
@@ -328,7 +331,8 @@ export default function AdminDashboard() {
       compare_price: '',
       stock_qty: '',
       description: '',
-      image_url: ''
+      images: [],
+      new_url: ''
     })
   }
 
@@ -816,27 +820,61 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Image</label>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Images</label>
                           <div className="grid grid-cols-1 gap-2">
                             <input
                               type="file"
                               accept="image/*"
+                              multiple
                               onChange={e => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  const url = URL.createObjectURL(file)
-                                  setEditProductForm(prev => ({ ...prev, image_url: url }))
+                                const files = e.target.files
+                                if (files && files.length > 0) {
+                                  const urls = Array.from(files).map(file => URL.createObjectURL(file))
+                                  setEditProductForm(prev => ({ ...prev, images: [...prev.images, ...urls] }))
                                 }
                               }}
                               className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
                             />
-                            <input
-                              type="text"
-                              value={editProductForm.image_url}
-                              onChange={e => setEditProductForm(prev => ({ ...prev, image_url: e.target.value }))}
-                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
-                              placeholder="Image URL"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={editProductForm.new_url}
+                                onChange={e => setEditProductForm(prev => ({ ...prev, new_url: e.target.value }))}
+                                className="flex-1 bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                                placeholder="Add image URL..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editProductForm.new_url.trim()) {
+                                    setEditProductForm(prev => ({
+                                      ...prev,
+                                      images: [...prev.images, prev.new_url.trim()],
+                                      new_url: ''
+                                    }))
+                                  }
+                                }}
+                                className="bg-premium-gold text-white text-[10px] font-bold px-3 rounded-xl hover:bg-premium-gold/90 transition-all"
+                              >
+                                Add
+                              </button>
+                            </div>
+                            {editProductForm.images.length > 0 && (
+                              <div className="flex gap-2 overflow-x-auto py-1">
+                                {editProductForm.images.map((img, idx) => (
+                                  <div key={idx} className="relative w-12 h-12 rounded-lg border border-premium-gold/15 overflow-hidden flex-shrink-0">
+                                    <Image src={img} alt="preview" fill className="object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditProductForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                      className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] hover:bg-red-500"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -919,27 +957,61 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Image</label>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Images</label>
                           <div className="grid grid-cols-1 gap-2">
                             <input
                               type="file"
                               accept="image/*"
+                              multiple
                               onChange={e => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  const url = URL.createObjectURL(file)
-                                  setNewProductForm(prev => ({ ...prev, image_url: url }))
+                                const files = e.target.files
+                                if (files && files.length > 0) {
+                                  const urls = Array.from(files).map(file => URL.createObjectURL(file))
+                                  setNewProductForm(prev => ({ ...prev, images: [...prev.images, ...urls] }))
                                 }
                               }}
                               className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
                             />
-                            <input
-                              type="text"
-                              value={newProductForm.image_url}
-                              onChange={e => setNewProductForm(prev => ({ ...prev, image_url: e.target.value }))}
-                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
-                              placeholder="Image URL"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={newProductForm.new_url}
+                                onChange={e => setNewProductForm(prev => ({ ...prev, new_url: e.target.value }))}
+                                className="flex-1 bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                                placeholder="Add image URL..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (newProductForm.new_url.trim()) {
+                                    setNewProductForm(prev => ({
+                                      ...prev,
+                                      images: [...prev.images, newProductForm.new_url.trim()],
+                                      new_url: ''
+                                    }))
+                                  }
+                                }}
+                                className="bg-premium-gold text-white text-[10px] font-bold px-3 rounded-xl hover:bg-premium-gold/90 transition-all"
+                              >
+                                Add
+                              </button>
+                            </div>
+                            {newProductForm.images.length > 0 && (
+                              <div className="flex gap-2 overflow-x-auto py-1">
+                                {newProductForm.images.map((img, idx) => (
+                                  <div key={idx} className="relative w-12 h-12 rounded-lg border border-premium-gold/15 overflow-hidden flex-shrink-0">
+                                    <Image src={img} alt="preview" fill className="object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setNewProductForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                      className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] hover:bg-red-500"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-1">
