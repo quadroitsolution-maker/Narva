@@ -23,6 +23,33 @@ export const MOCK_PRODUCTS = [
   }
 ];
 
+// Helper to load and save products to localStorage
+let localProducts: any[] = [];
+
+function getLocalProducts() {
+  if (localProducts.length > 0) return localProducts;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_products');
+    if (stored) {
+      try {
+        localProducts = JSON.parse(stored);
+        return localProducts;
+      } catch (e) {
+        console.error("Failed to parse local storage products", e);
+      }
+    }
+    localStorage.setItem('narva_products', JSON.stringify(MOCK_PRODUCTS));
+  }
+  localProducts = [...MOCK_PRODUCTS];
+  return localProducts;
+}
+
+function saveLocalProducts() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_products', JSON.stringify(localProducts));
+  }
+}
+
 // Seed mock reviews with status and optional video_url
 export const MOCK_REVIEWS = [
   {
@@ -202,7 +229,55 @@ export async function getProducts() {
       console.warn("Supabase fetch products error, using mock data", e)
     }
   }
-  return MOCK_PRODUCTS;
+  return getLocalProducts().filter(p => p.is_active);
+}
+
+export async function getProductsAdmin() {
+  return getLocalProducts();
+}
+
+export async function addProduct(product: { name: string; slug?: string; price: number; compare_price: number; description: string; stock_qty: number; images: string[] }) {
+  const prods = getLocalProducts();
+  const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const newProd = {
+    id: 'prod_' + Date.now(),
+    slug,
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    compare_price: product.compare_price,
+    stock_qty: product.stock_qty,
+    low_stock_threshold: 10,
+    is_subscription_eligible: true,
+    is_active: true,
+    images: product.images.length > 0 && product.images[0] ? product.images : ['https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?q=80&w=600&auto=format&fit=crop'],
+    ingredients: []
+  };
+  prods.push(newProd);
+  saveLocalProducts();
+  return { success: true, data: newProd };
+}
+
+export async function removeProduct(id: string) {
+  const prods = getLocalProducts();
+  const idx = prods.findIndex(p => p.id === id);
+  if (idx !== -1) {
+    prods.splice(idx, 1);
+    saveLocalProducts();
+    return { success: true };
+  }
+  return { success: false, error: 'Product not found' };
+}
+
+export async function updateProduct(id: string, fields: any) {
+  const prods = getLocalProducts();
+  const prod = prods.find(p => p.id === id);
+  if (prod) {
+    Object.assign(prod, fields);
+    saveLocalProducts();
+    return { success: true, data: prod };
+  }
+  return { success: false, error: 'Product not found' };
 }
 
 export async function getProductBySlug(slug: string) {
@@ -215,7 +290,7 @@ export async function getProductBySlug(slug: string) {
       console.warn("Supabase fetch product by slug error, using mock data", e)
     }
   }
-  return MOCK_PRODUCTS.find(p => p.slug === slug) || MOCK_PRODUCTS[0];
+  return getLocalProducts().find(p => p.slug === slug) || getLocalProducts()[0];
 }
 
 export async function getReviews(productId: string) {

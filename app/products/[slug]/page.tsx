@@ -13,11 +13,12 @@ import { getProductBySlug, getReviews, addReview } from '@/lib/db'
 import { useCart } from '@/lib/store'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function ProductPage() {
+export default function ProductPage({ params }: { params: { slug: string } }) {
+  const { slug } = params
   const { addItem } = useCart()
   const [product, setProduct] = useState<any>(null)
   const [reviews, setReviews] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'ingredients' | 'how-it-works' | 'dosage'>('ingredients')
+  const [activeTab, setActiveTab] = useState<'description' | 'ingredients' | 'dosage'>('description')
   const [purchaseType, setPurchaseType] = useState<'one' | 'sub'>('one')
   
   // Review Form States
@@ -31,17 +32,18 @@ export default function ProductPage() {
   const [reviewVideoName, setReviewVideoName] = useState('')
   const [activeVideoReview, setActiveVideoReview] = useState<any | null>(null)
   const [formSuccess, setFormSuccess] = useState(false)
-  const [activeFaq, setActiveFaq] = useState<number | null>(null)
 
   useEffect(() => {
     async function loadProductData() {
-      const prod = await getProductBySlug('melatonin-gummies')
+      const prod = await getProductBySlug(slug)
       setProduct(prod)
-      const revs = await getReviews('88888888-8888-8888-8888-888888888888')
-      setReviews(revs)
+      if (prod) {
+        const revs = await getReviews(prod.id)
+        setReviews(revs)
+      }
     }
     loadProductData()
-  }, [])
+  }, [slug])
 
   const handleAddToCart = () => {
     if (!product) return
@@ -49,7 +51,7 @@ export default function ProductPage() {
     addItem({
       productId: product.id,
       name: product.name,
-      price: isSub ? 329.00 : 399.00,
+      price: isSub ? (product.price * 0.82) : product.price, // Apply subscription discount
       image: product.images[0],
       isSubscription: isSub,
       quantity: 1
@@ -68,10 +70,10 @@ export default function ProductPage() {
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!reviewName || !reviewBody) return
+    if (!product || !reviewName || !reviewBody) return
 
     const res = await addReview({
-      product_id: '88888888-8888-8888-8888-888888888888',
+      product_id: product.id,
       customer_name: reviewName,
       city: reviewCity,
       rating: reviewRating,
@@ -82,8 +84,7 @@ export default function ProductPage() {
 
     if (res.success) {
       setFormSuccess(true)
-      // Reload reviews
-      const updatedRevs = await getReviews('88888888-8888-8888-8888-888888888888')
+      const updatedRevs = await getReviews(product.id)
       setReviews(updatedRevs)
       
       // Reset form
@@ -120,44 +121,13 @@ export default function ProductPage() {
       <CartDrawer />
       <AiAssistant />
 
-      {/* Structured data JSON-LD Product & FAQ Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            "name": product.name,
-            "image": product.images,
-            "description": product.description,
-            "sku": "NARVA-MEL-001",
-            "brand": {
-              "@type": "Brand",
-              "name": "Narva"
-            },
-            "offers": {
-              "@type": "Offer",
-              "priceCurrency": "INR",
-              "price": purchaseType === 'sub' ? "329.00" : "399.00",
-              "availability": "https://schema.org/InStock",
-              "url": "https://narva.in/products/melatonin-gummies"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.8",
-              "reviewCount": String(reviews.length)
-            }
-          })
-        }}
-      />
-
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
         
         {/* Breadcrumbs */}
         <div className="text-xs text-matte-black/45 dark:text-dark-text/45 mb-8 flex gap-2">
           <Link href="/" className="hover:text-premium-gold">Home</Link>
           <span>/</span>
-          <Link href="/" className="hover:text-premium-gold">Products</Link>
+          <Link href="/products" className="hover:text-premium-gold">Products</Link>
           <span>/</span>
           <span className="text-premium-gold font-medium">{product.name}</span>
         </div>
@@ -168,19 +138,27 @@ export default function ProductPage() {
           {/* Left: 3D Product Interactive Viewer & Images */}
           <div className="space-y-8 sticky top-28">
             <div className="glass-panel rounded-3xl p-6 flex items-center justify-center bg-warm-beige/10 dark:bg-dark-card/10 border border-premium-gold/15">
-              <Product3DViewer />
+              {product.slug === 'melatonin-gummies' ? (
+                <Product3DViewer />
+              ) : (
+                <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-warm-beige/20 flex items-center justify-center">
+                  <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
+                </div>
+              )}
             </div>
             
             {/* Gallery fallback */}
             <div className="grid grid-cols-3 gap-4">
               {product.images.map((img: string, idx: number) => (
                 <div key={idx} className="relative h-20 rounded-xl overflow-hidden border border-premium-gold/10 hover:border-premium-gold transition-colors bg-warm-beige/20">
-                  <Image src={img} alt="gummies bottle view" fill className="object-cover" />
+                  <Image src={img} alt="product view" fill className="object-cover" />
                 </div>
               ))}
-              <div className="glass-panel rounded-xl flex flex-col justify-center items-center text-center p-2 border border-premium-gold/10 text-[9px] font-bold text-premium-gold uppercase tracking-wider">
-                🔄 Rotate Bottle above
-              </div>
+              {product.slug === 'melatonin-gummies' && (
+                <div className="glass-panel rounded-xl flex flex-col justify-center items-center text-center p-2 border border-premium-gold/10 text-[9px] font-bold text-premium-gold uppercase tracking-wider">
+                  🔄 Rotate Bottle above
+                </div>
+              )}
             </div>
           </div>
 
@@ -190,7 +168,7 @@ export default function ProductPage() {
             {/* Title & Reviews summary */}
             <div className="space-y-3">
               <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-widest text-premium-gold uppercase">
-                🌙 Sleep & circadian support
+                🌙 Doctor Formulated & Approved
               </span>
               <h1 className="text-3xl sm:text-4xl font-serif leading-tight">{product.name}</h1>
               
@@ -223,8 +201,10 @@ export default function ProductPage() {
                 >
                   <span className="text-xs font-bold uppercase tracking-wider text-matte-black/60 dark:text-dark-text/60">One-Time Buy</span>
                   <div className="mt-4">
-                    <span className="text-xl font-bold text-premium-gold">₹399.00</span>
-                    <span className="text-xs line-through text-matte-black/40 dark:text-dark-text/40 block">₹499.00</span>
+                    <span className="text-xl font-bold text-premium-gold">₹{product.price.toFixed(2)}</span>
+                    {product.compare_price && (
+                      <span className="text-xs line-through text-matte-black/40 dark:text-dark-text/40 block">₹{product.compare_price.toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
 
@@ -242,8 +222,8 @@ export default function ProductPage() {
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-matte-black/60 dark:text-dark-text/60">Subscribe & Save</span>
                   <div className="mt-4">
-                    <span className="text-xl font-bold text-premium-gold">₹329.00 <span className="text-xs font-normal">/ mo</span></span>
-                    <span className="text-xs line-through text-matte-black/40 dark:text-dark-text/40 block">₹399.00</span>
+                    <span className="text-xl font-bold text-premium-gold">₹{(product.price * 0.82).toFixed(2)} <span className="text-xs font-normal">/ mo</span></span>
+                    <span className="text-xs line-through text-matte-black/40 dark:text-dark-text/40 block">₹{product.price.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -267,15 +247,12 @@ export default function ProductPage() {
                 <div className="flex items-center gap-2">🟢 ISO 9001:2015 Approved</div>
                 <div className="flex items-center gap-2">🟢 100% Kosher & Halal</div>
               </div>
-              <p className="text-[10px] text-matte-black/45 dark:text-dark-text/45 pt-1 border-t border-premium-gold/10">
-                Manufactured by Sevenq Nutrition LLP under WHO-GMP and ISO certified conditions.
-              </p>
             </div>
 
-            {/* TAB SECTIONS: Ingredients, How it Works, Dosage */}
+            {/* TAB SECTIONS: Description & Directions */}
             <div className="space-y-4 border-t border-premium-gold/10 dark:border-white/5 pt-8">
               <div className="flex gap-6 border-b border-premium-gold/10 dark:border-white/5 pb-3 text-xs font-bold uppercase tracking-wider">
-                {['ingredients', 'how-it-works', 'dosage'].map((tab) => (
+                {['description', 'ingredients', 'dosage'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab as any)}
@@ -283,37 +260,30 @@ export default function ProductPage() {
                       activeTab === tab ? 'text-premium-gold' : 'text-matte-black/50 dark:text-dark-text/50'
                     }`}
                   >
-                    {tab.replace('-', ' ')}
+                    {tab}
                   </button>
                 ))}
               </div>
 
               <div className="text-xs leading-relaxed text-matte-black/60 dark:text-dark-text/60 space-y-4">
+                {activeTab === 'description' && (
+                  <p>{product.description}</p>
+                )}
                 {activeTab === 'ingredients' && (
                   <div className="grid gap-3">
-                    <div>
-                      <strong className="text-matte-black dark:text-dark-text">Melatonin (3mg):</strong> Helps align your pineal gland's sleeping rhythms without creating hormonal over-dependencies.
-                    </div>
-                    <div>
-                      <strong className="text-matte-black dark:text-dark-text">L-Theanine (100mg):</strong> Amino acid crossing blood-brain barrier. Triggers alpha-waves, calming mental anxiety.
-                    </div>
-                    <div>
-                      <strong className="text-matte-black dark:text-dark-text">Magnesium (50mg):</strong> Promotes muscle relaxation and keeps your sleep deep.
-                    </div>
-                    <p className="text-[10px] italic text-premium-gold pt-2">
-                      <BookOpen size={10} className="inline mr-1" /> Scientific citations link: PubMed clinically tested sleep aids.
-                    </p>
+                    {product.ingredients && product.ingredients.length > 0 ? (
+                      product.ingredients.map((ing: any, i: number) => (
+                        <div key={i}>
+                          <strong className="text-matte-black dark:text-dark-text">{ing.name}:</strong> {ing.desc}
+                        </div>
+                      ))
+                    ) : (
+                      <p>Formulated with premium clinically tested active ingredients. See label packaging for full trace breakdown.</p>
+                    )}
                   </div>
                 )}
-                {activeTab === 'how-it-works' && (
-                  <p>
-                    Within 30 minutes of taking a gummy, melatonin begins to dissolve, initiating standard thermal sleep signals (lowering body temperature). Simultaneously, L-Theanine stimulates neurotransmitters, suppressing rapid cortisol pathways. This allows you to ease directly into delta-wave deep sleep cycles without the heavy chemical knock-out effect of sleeping pills.
-                  </p>
-                )}
                 {activeTab === 'dosage' && (
-                  <p>
-                    Take exactly 1 gummy 30 minutes before your planned bedtime. Ensure screen light is dimmed for maximum efficacy. Safe for nightly use. Do not operate heavy machinery within 6 hours of consumption.
-                  </p>
+                  <p>Check usage instructions on the packaging box. Always consult with a doctor before starting any daily wellness supplement.</p>
                 )}
               </div>
             </div>
@@ -416,7 +386,7 @@ export default function ProductPage() {
               </div>
 
               {/* Form to submit review */}
-              <form onSubmit={handleReviewSubmit} className="glass-panel p-6 rounded-2xl border border-premium-gold/15 space-y-4">
+              <form onSubmit={handleReviewSubmit} className="glass-panel p-6 rounded-2xl border border-premium-gold/15 space-y-4 bg-white/5 dark:bg-dark-card/5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-premium-gold">Write a Review</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <input
@@ -458,7 +428,7 @@ export default function ProductPage() {
                 />
                 <textarea
                   required
-                  placeholder="Tell us about your sleep experience..."
+                  placeholder="Tell us about your wellness experience..."
                   value={reviewBody}
                   onChange={(e) => setReviewBody(e.target.value)}
                   rows={3}
@@ -498,123 +468,127 @@ export default function ProductPage() {
 
             {/* Reviews List */}
             <div className="lg:col-span-8 space-y-6">
-              {reviews.map((r, idx) => (
-                <div key={idx} className="border-b border-premium-gold/10 dark:border-white/5 pb-6 last:border-0 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-sm font-semibold tracking-wide">{r.title || 'Verified Purchase Review'}</h4>
-                      <div className="flex items-center gap-2 text-xs text-matte-black/50 dark:text-dark-text/50">
-                        <span className="font-semibold text-premium-gold">{r.customer_name || 'Verified Buyer'}</span>
-                        <span>&middot;</span>
-                        <span>{r.city || 'India'}</span>
-                        <span>&middot;</span>
-                        <span className="bg-green-500/10 text-green-600 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                          Verified Purchase
-                        </span>
+              {reviews.length === 0 ? (
+                <p className="text-xs text-matte-black/45 dark:text-dark-text/45 italic">No reviews approved for this product yet. Be the first to share your experience!</p>
+              ) : (
+                reviews.map((r, idx) => (
+                  <div key={idx} className="border-b border-premium-gold/10 dark:border-white/5 pb-6 last:border-0 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-semibold tracking-wide">{r.title || 'Verified Purchase Review'}</h4>
+                        <div className="flex items-center gap-2 text-xs text-matte-black/50 dark:text-dark-text/50">
+                          <span className="font-semibold text-premium-gold">{r.customer_name || 'Verified Buyer'}</span>
+                          <span>&middot;</span>
+                          <span>{r.city || 'India'}</span>
+                          <span>&middot;</span>
+                          <span className="bg-green-500/10 text-green-600 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                            Verified Purchase
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex text-premium-gold">
+                        {Array.from({ length: r.rating }).map((_, i) => (
+                          <Star key={i} size={12} className="fill-current" />
+                        ))}
                       </div>
                     </div>
-                    <div className="flex text-premium-gold">
-                      {Array.from({ length: r.rating }).map((_, i) => (
-                        <Star key={i} size={12} className="fill-current" />
-                      ))}
-                    </div>
+
+                    <p className="text-xs leading-relaxed text-matte-black/70 dark:text-dark-text/75">
+                      {r.body}
+                    </p>
+
+                    {r.video_url && (
+                      <button
+                        onClick={() => setActiveVideoReview(r)}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold text-premium-gold hover:underline border border-premium-gold/20 rounded-full px-3 py-1 bg-premium-gold/5 mt-1"
+                      >
+                        <Play size={10} className="fill-current text-premium-gold" /> Watch Video Review
+                      </button>
+                    )}
+
+                    {r.admin_reply && (
+                      <div className="bg-warm-beige/30 dark:bg-dark-card/40 p-4 rounded-xl border border-premium-gold/10 border-l-2 border-l-premium-gold space-y-1 text-xs">
+                        <strong className="block text-premium-gold font-serif italic">Response from Narva Team:</strong>
+                        <p className="text-matte-black/60 dark:text-dark-text/60 leading-relaxed">{r.admin_reply}</p>
+                      </div>
+                    )}
                   </div>
-
-                  <p className="text-xs leading-relaxed text-matte-black/70 dark:text-dark-text/75">
-                    {r.body}
-                  </p>
-
-                  {r.video_url && (
-                    <button
-                      onClick={() => setActiveVideoReview(r)}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-premium-gold hover:underline border border-premium-gold/20 rounded-full px-3 py-1 bg-premium-gold/5 mt-1"
-                    >
-                      <Play size={10} className="fill-current text-premium-gold" /> Watch Video Review
-                    </button>
-                  )}
-
-                  {r.admin_reply && (
-                    <div className="bg-warm-beige/30 dark:bg-dark-card/40 p-4 rounded-xl border border-premium-gold/10 border-l-2 border-l-premium-gold space-y-1 text-xs">
-                      <strong className="block text-premium-gold font-serif italic">Response from Narva Team:</strong>
-                      <p className="text-matte-black/60 dark:text-dark-text/60 leading-relaxed">{r.admin_reply}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
           </div>
         </section>
 
-        {/* Video Reels Lightbox Modal */}
-        <AnimatePresence>
-          {activeVideoReview && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="relative bg-[#0b0b0e] border border-white/10 rounded-3xl overflow-hidden max-w-3xl w-full flex flex-col md:flex-row h-[80vh] shadow-2xl"
-              >
-                {/* Left Side: Video Player */}
-                <div className="relative flex-1 bg-black flex items-center justify-center h-[55%] md:h-full">
-                  <video
-                    src={activeVideoReview.video_url}
-                    autoPlay
-                    controls
-                    loop
-                    playsInline
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+      </main>
 
-                {/* Right Side: Review Details */}
-                <div className="w-full md:w-80 bg-[#121216] p-6 flex flex-col justify-between text-white text-xs h-[45%] md:h-full border-t md:border-t-0 md:border-l border-white/10">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-sm font-semibold tracking-wide font-serif text-white">{activeVideoReview.title || 'Verified Video Review'}</h4>
-                        <p className="text-[10px] text-white/50 mt-0.5">
-                          {activeVideoReview.customer_name} &middot; {activeVideoReview.city || 'India'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setActiveVideoReview(null)}
-                        className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                      >
-                        <X size={14} className="text-white" />
-                      </button>
-                    </div>
+      {/* Video Reels Lightbox Modal */}
+      <AnimatePresence>
+        {activeVideoReview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-[#0b0b0e] border border-white/10 rounded-3xl overflow-hidden max-w-3xl w-full flex flex-col md:flex-row h-[80vh] shadow-2xl"
+            >
+              {/* Left Side: Video Player */}
+              <div className="relative flex-1 bg-black flex items-center justify-center h-[55%] md:h-full">
+                <video
+                  src={activeVideoReview.video_url}
+                  autoPlay
+                  controls
+                  loop
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              </div>
 
-                    <div className="flex text-premium-gold gap-0.5">
-                      {Array.from({ length: activeVideoReview.rating }).map((_, i) => (
-                        <Star key={i} size={12} className="fill-current" />
-                      ))}
-                    </div>
-
-                    <p className="text-white/80 leading-relaxed overflow-y-auto max-h-40 pr-2">
-                      {activeVideoReview.body}
-                    </p>
-                  </div>
-
-                  <div className="border-t border-white/10 pt-4 space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] text-green-400 bg-green-500/10 px-2.5 py-1 rounded-full w-fit font-bold uppercase tracking-wider">
-                      Verified Customer Video
+              {/* Right Side: Review Details */}
+              <div className="w-full md:w-80 bg-[#121216] p-6 flex flex-col justify-between text-white text-xs h-[45%] md:h-full border-t md:border-t-0 md:border-l border-white/10">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-semibold tracking-wide font-serif text-white">{activeVideoReview.title || 'Verified Video Review'}</h4>
+                      <p className="text-[10px] text-white/50 mt-0.5">
+                        {activeVideoReview.customer_name} &middot; {activeVideoReview.city || 'India'}
+                      </p>
                     </div>
                     <button
                       onClick={() => setActiveVideoReview(null)}
-                      className="w-full bg-premium-gold text-white font-bold py-3 rounded-xl hover:bg-premium-gold/90 transition-colors uppercase tracking-wider text-[10px]"
+                      className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                     >
-                      Close Player
+                      <X size={14} className="text-white" />
                     </button>
                   </div>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
-      </main>
+                  <div className="flex text-premium-gold gap-0.5">
+                    {Array.from({ length: activeVideoReview.rating }).map((_, i) => (
+                      <Star key={i} size={12} className="fill-current" />
+                    ))}
+                  </div>
+
+                  <p className="text-white/80 leading-relaxed overflow-y-auto max-h-40 pr-2">
+                    {activeVideoReview.body}
+                  </p>
+                </div>
+
+                <div className="border-t border-white/10 pt-4 space-y-3">
+                  <div className="flex items-center gap-2 text-[10px] text-green-400 bg-green-500/10 px-2.5 py-1 rounded-full w-fit font-bold uppercase tracking-wider">
+                    Verified Customer Video
+                  </div>
+                  <button
+                    onClick={() => setActiveVideoReview(null)}
+                    className="w-full bg-premium-gold text-white font-bold py-3 rounded-xl hover:bg-premium-gold/90 transition-colors uppercase tracking-wider text-[10px]"
+                  >
+                    Close Player
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </>

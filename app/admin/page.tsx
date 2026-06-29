@@ -13,7 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -200,11 +200,13 @@ export default function AdminDashboard() {
   const [subscribers, setSubscribers] = useState(MOCK_SUBSCRIBERS)
 
   useEffect(() => {
-    async function loadAdminReviews() {
+    async function loadAdminData() {
       const allRevs = await getReviewsAdmin();
       setReviews(allRevs);
+      const allProds = await getProductsAdmin();
+      setProducts(allProds);
     }
-    loadAdminReviews();
+    loadAdminData();
   }, [activePanel]);
 
   // Order panel
@@ -216,6 +218,18 @@ export default function AdminDashboard() {
   // Product edit
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '' })
+
+  // Product create
+  const [isAddingProduct, setIsAddingProduct] = useState(false)
+  const [newProductForm, setNewProductForm] = useState({
+    name: '',
+    slug: '',
+    price: '',
+    compare_price: '',
+    stock_qty: '',
+    description: '',
+    image_url: ''
+  })
 
   // Blog edit
   const [editingBlog, setEditingBlog] = useState<any>(null)
@@ -269,15 +283,57 @@ export default function AdminDashboard() {
     setEditProductForm({ name: p.name, price: String(p.price), compare_price: String(p.compare_price), stock_qty: String(p.stock_qty) })
   }
 
-  const saveProductEdit = () => {
-    setProducts(prev => prev.map(p => p.id === editingProduct.id ? {
-      ...p,
+  const saveProductEdit = async () => {
+    if (!editingProduct) return;
+    await updateProduct(editingProduct.id, {
       name: editProductForm.name,
-      price: parseFloat(editProductForm.price) || p.price,
-      compare_price: parseFloat(editProductForm.compare_price) || p.compare_price,
-      stock_qty: parseInt(editProductForm.stock_qty) || p.stock_qty,
-    } : p))
+      price: parseFloat(editProductForm.price) || editingProduct.price,
+      compare_price: parseFloat(editProductForm.compare_price) || editingProduct.compare_price,
+      stock_qty: parseInt(editProductForm.stock_qty) || editingProduct.stock_qty,
+    });
+    const allProds = await getProductsAdmin();
+    setProducts(allProds);
     setEditingProduct(null)
+  }
+
+  const createProduct = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newProductForm.name || !newProductForm.price) return
+    await addProduct({
+      name: newProductForm.name,
+      slug: newProductForm.slug || undefined,
+      price: parseFloat(newProductForm.price) || 299,
+      compare_price: parseFloat(newProductForm.compare_price) || 399,
+      description: newProductForm.description || 'Premium formulated health supplement.',
+      stock_qty: parseInt(newProductForm.stock_qty) || 50,
+      images: newProductForm.image_url ? [newProductForm.image_url] : []
+    })
+    const allProds = await getProductsAdmin()
+    setProducts(allProds)
+    setIsAddingProduct(false)
+    setNewProductForm({
+      name: '',
+      slug: '',
+      price: '',
+      compare_price: '',
+      stock_qty: '',
+      description: '',
+      image_url: ''
+    })
+  }
+
+  const deleteProduct = async (id: string) => {
+    if (confirm("Are you sure you want to remove this product? This action cannot be undone.")) {
+      await removeProduct(id)
+      const allProds = await getProductsAdmin()
+      setProducts(allProds)
+    }
+  }
+
+  const addStockTen = async (id: string, currentStock: number) => {
+    await updateProduct(id, { stock_qty: currentStock + 10 });
+    const allProds = await getProductsAdmin()
+    setProducts(allProds)
   }
 
   const openBlogEdit = (b: any) => {
@@ -661,7 +717,15 @@ export default function AdminDashboard() {
           {/* ── PRODUCTS ───────────────────────────────────────────────────────── */}
           {activePanel === 'products' && (
             <div className="space-y-6">
-              <h2 className="font-serif text-3xl font-light">Products & Inventory</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="font-serif text-3xl font-light">Products & Inventory</h2>
+                <button
+                  onClick={() => setIsAddingProduct(true)}
+                  className="bg-premium-gold text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl hover:bg-premium-gold/90 transition-colors flex items-center gap-1.5"
+                >
+                  <Plus size={12} /> Add Product
+                </button>
+              </div>
 
               <div className="glass-panel rounded-2xl border border-premium-gold/10 overflow-hidden">
                 <div className="grid grid-cols-6 gap-4 bg-warm-beige/30 dark:bg-dark-card/50 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50 border-b border-premium-gold/10">
@@ -680,22 +744,30 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-semibold">₹{p.price}</p>
-                        <p className="text-[10px] line-through text-matte-black/30">₹{p.compare_price}</p>
+                        {p.compare_price && <p className="text-[10px] line-through text-matte-black/30">₹{p.compare_price}</p>}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={p.stock_qty <= p.low_stock_threshold ? 'text-red-500 font-bold' : ''}>{p.stock_qty}</span>
                         <button
-                          onClick={() => setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, stock_qty: prod.stock_qty + 10 } : prod))}
+                          onClick={() => addStockTen(p.id, p.stock_qty)}
                           className="text-[9px] font-bold border border-premium-gold/25 text-premium-gold px-1.5 py-0.5 rounded hover:bg-premium-gold/10 transition-colors"
                         >+10</button>
                       </div>
                       <StatusBadge status={p.is_active ? 'active' : 'inactive'} />
-                      <button
-                        onClick={() => openProductEdit(p)}
-                        className="flex items-center gap-1 text-[10px] font-bold text-premium-gold hover:underline"
-                      >
-                        <Edit2 size={11} /> Edit
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => openProductEdit(p)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-premium-gold hover:underline"
+                        >
+                          <Edit2 size={11} /> Edit
+                        </button>
+                        <button
+                          onClick={() => deleteProduct(p.id)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline"
+                        >
+                          <Trash2 size={11} /> Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -737,6 +809,105 @@ export default function AdminDashboard() {
                       <button onClick={saveProductEdit} className="w-full bg-premium-gold text-white text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-premium-gold/90 transition-colors">
                         <Save size={13} /> Save Changes
                       </button>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* Product Add Modal */}
+              <AnimatePresence>
+                {isAddingProduct && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm">
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                      className="glass-panel w-full max-w-sm rounded-3xl p-7 shadow-2xl border border-premium-gold/15 space-y-4 relative overflow-y-auto max-h-[90vh]"
+                    >
+                      <button onClick={() => setIsAddingProduct(false)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-warm-beige/50 transition-colors">
+                        <X size={15} />
+                      </button>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-premium-gold font-bold">New Product</p>
+                        <h3 className="font-serif text-lg mt-0.5">Add to Inventory</h3>
+                      </div>
+                      <form onSubmit={createProduct} className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Name</label>
+                          <input
+                            required type="text"
+                            value={newProductForm.name}
+                            onChange={e => setNewProductForm(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                            placeholder="e.g. Daily Vitamins"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Slug</label>
+                            <input
+                              type="text"
+                              value={newProductForm.slug}
+                              onChange={e => setNewProductForm(prev => ({ ...prev, slug: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="daily-vitamins"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Stock</label>
+                            <input
+                              required type="number"
+                              value={newProductForm.stock_qty}
+                              onChange={e => setNewProductForm(prev => ({ ...prev, stock_qty: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="50"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Price (₹)</label>
+                            <input
+                              required type="number"
+                              value={newProductForm.price}
+                              onChange={e => setNewProductForm(prev => ({ ...prev, price: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="299"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Compare Price (₹)</label>
+                            <input
+                              type="number"
+                              value={newProductForm.compare_price}
+                              onChange={e => setNewProductForm(prev => ({ ...prev, compare_price: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="399"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Image URL</label>
+                          <input
+                            type="text"
+                            value={newProductForm.image_url}
+                            onChange={e => setNewProductForm(prev => ({ ...prev, image_url: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                            placeholder="https://unsplash.com/..."
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Description</label>
+                          <textarea
+                            rows={2}
+                            value={newProductForm.description}
+                            onChange={e => setNewProductForm(prev => ({ ...prev, description: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-3 rounded-xl focus:outline-none resize-none"
+                            placeholder="Product description summary..."
+                          />
+                        </div>
+                        <button type="submit" className="w-full bg-premium-gold text-white text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-premium-gold/90 transition-colors mt-2">
+                          <Plus size={13} /> Add Product
+                        </button>
+                      </form>
                     </motion.div>
                   </div>
                 )}

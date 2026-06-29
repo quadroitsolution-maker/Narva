@@ -21,6 +21,7 @@ export default function Footer() {
     {
       title: 'Ecosystem',
       links: [
+        { label: 'All Products', href: '/products' },
         { label: 'Sleep Gummies', href: '/products/melatonin-gummies' },
         { label: 'Doctor Consultation', href: '/consultation' },
         { label: 'Science & Research', href: '/science' },

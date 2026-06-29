@@ -24,7 +24,7 @@ export default function Navbar() {
   }, [])
 
   const navLinks = [
-    { name: 'Products', href: '/products/melatonin-gummies' },
+    { name: 'Products', href: '/products' },
     { name: 'Science', href: '/science' },
     { name: 'About', href: '/about' },
     { name: 'Consultation', href: '/consultation' },
