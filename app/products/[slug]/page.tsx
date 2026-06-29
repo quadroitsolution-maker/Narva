@@ -8,7 +8,6 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CartDrawer from '@/components/CartDrawer'
 import AiAssistant from '@/components/AiAssistant'
-import Product3DViewer from '@/components/Product3DViewer'
 import { getProductBySlug, getReviews, addReview } from '@/lib/db'
 import { useCart } from '@/lib/store'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -138,19 +137,15 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
           {/* Left: 3D Product Interactive Viewer & Images */}
           <div className="space-y-8 sticky top-28">
             <div className="glass-panel rounded-3xl p-6 flex items-center justify-center bg-warm-beige/10 dark:bg-dark-card/10 border border-premium-gold/15">
-              {product.slug === 'melatonin-gummies' ? (
-                <Product3DViewer />
-              ) : (
-                <div className="relative flex h-[350px] w-full items-center justify-center cursor-pointer select-none overflow-visible">
-                  {/* Soft Lighting Backglow */}
-                  <div className="absolute inset-0 bg-premium-gold/20 blur-3xl -z-10 rounded-full scale-150 animate-pulse" />
-                  <div className="relative h-[250px] w-[150px] rounded-[30px] border border-premium-gold/30 shadow-2xl overflow-hidden flex items-center justify-center bg-[#1e130c]/90">
-                    <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
-                  </div>
-                  {/* Shadow */}
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[110px] h-[15px] bg-black/30 rounded-full blur-md" />
+              <div className="relative flex h-[350px] w-full items-center justify-center cursor-pointer select-none overflow-visible">
+                {/* Soft Lighting Backglow */}
+                <div className="absolute inset-0 bg-premium-gold/20 blur-3xl -z-10 rounded-full scale-150 animate-pulse" />
+                <div className="relative h-[250px] w-[150px] rounded-[30px] border border-premium-gold/30 shadow-2xl overflow-hidden flex items-center justify-center bg-[#1e130c]/90">
+                  <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
                 </div>
-              )}
+                {/* Shadow */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[110px] h-[15px] bg-black/30 rounded-full blur-md" />
+              </div>
             </div>
             
             {/* Gallery fallback */}
@@ -160,11 +155,6 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                   <Image src={img} alt="product view" fill className="object-cover" />
                 </div>
               ))}
-              {product.slug === 'melatonin-gummies' && (
-                <div className="glass-panel rounded-xl flex flex-col justify-center items-center text-center p-2 border border-premium-gold/10 text-[9px] font-bold text-premium-gold uppercase tracking-wider">
-                  🔄 Rotate Bottle above
-                </div>
-              )}
             </div>
           </div>
 
