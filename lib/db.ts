@@ -23,7 +23,50 @@ export const MOCK_PRODUCTS = [
   }
 ];
 
+// Seed mock reviews with status and optional video_url
 export const MOCK_REVIEWS = [
+  {
+    id: 'v1',
+    product_id: '88888888-8888-8888-8888-888888888888',
+    customer_name: 'Priya Sharma',
+    city: 'Mumbai',
+    rating: 5,
+    title: 'My night ritual!',
+    body: 'I take 1 gummy every night and wake up feeling so refreshed. The science behind this is actual gold.',
+    is_verified_purchase: true,
+    created_at: '2026-06-25T10:00:00Z',
+    status: 'approved',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-lying-in-bed-and-smiling-41855-large.mp4',
+    admin_reply: null
+  },
+  {
+    id: 'v2',
+    product_id: '88888888-8888-8888-8888-888888888888',
+    customer_name: 'Rohan Malhotra',
+    city: 'Bangalore',
+    rating: 5,
+    title: 'Startup life saver',
+    body: 'Shattered sleep is now a thing of the past. Absolute sanity saver.',
+    is_verified_purchase: true,
+    created_at: '2026-06-24T18:30:00Z',
+    status: 'approved',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-young-woman-sleeping-in-bed-41857-large.mp4',
+    admin_reply: null
+  },
+  {
+    id: 'v3',
+    product_id: '88888888-8888-8888-8888-888888888888',
+    customer_name: 'Dr. Kabir Sen',
+    city: 'Delhi',
+    rating: 5,
+    title: 'Highly recommended clinically',
+    body: 'Excellent non-habit-forming formulation. Great response from my patients.',
+    is_verified_purchase: true,
+    created_at: '2026-06-23T14:15:00Z',
+    status: 'approved',
+    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-putting-on-a-sleep-mask-in-bed-42475-large.mp4',
+    admin_reply: null
+  },
   {
     id: '1',
     product_id: '88888888-8888-8888-8888-888888888888',
@@ -34,6 +77,8 @@ export const MOCK_REVIEWS = [
     body: 'As an early-stage startup founder, my sleep schedule was completely wrecked. Taking one Narva gummy 30 mins before bed has helped me fall asleep consistently. Highly recommend to anyone struggling with stress.',
     is_verified_purchase: true,
     created_at: '2026-06-23T12:00:00Z',
+    status: 'approved',
+    video_url: '',
     admin_reply: 'Thanks for the kind words, Arya! Glad to know Narva helps you stay rested during your grind.'
   },
   {
@@ -46,6 +91,8 @@ export const MOCK_REVIEWS = [
     body: 'I have tried other melatonin pills before and they always made me feel like a zombie in the morning. Narvas formula with L-theanine and magnesium is incredibly clean. Feel totally refreshed at 6 AM.',
     is_verified_purchase: true,
     created_at: '2026-06-22T09:15:00Z',
+    status: 'approved',
+    video_url: '',
     admin_reply: null
   },
   {
@@ -58,9 +105,40 @@ export const MOCK_REVIEWS = [
     body: 'Tastes like real berries, and works within 25 minutes. Docked 1 star because shipping took 4 days to Bangalore, but the product itself is top-tier.',
     is_verified_purchase: true,
     created_at: '2026-06-20T16:30:00Z',
+    status: 'approved',
+    video_url: '',
     admin_reply: null
   }
 ];
+
+// Helper to load and save client-side reviews to localStorage
+let localReviews: any[] = [];
+
+function getLocalReviews() {
+  if (localReviews.length > 0) return localReviews;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_reviews');
+    if (stored) {
+      try {
+        localReviews = JSON.parse(stored);
+        return localReviews;
+      } catch (e) {
+        console.error("Failed to parse local storage reviews", e);
+      }
+    }
+    // Set initial mock data in localStorage
+    localStorage.setItem('narva_reviews', JSON.stringify(MOCK_REVIEWS));
+  }
+  localReviews = [...MOCK_REVIEWS];
+  return localReviews;
+}
+
+function saveLocalReviews() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_reviews', JSON.stringify(localReviews));
+  }
+}
+
 
 export const MOCK_BLOGS = [
   {
@@ -154,11 +232,25 @@ export async function getReviews(productId: string) {
       console.warn("Supabase fetch reviews error, using mock data", e)
     }
   }
-  return MOCK_REVIEWS.filter(r => r.product_id === productId);
+  return getLocalReviews().filter(r => r.product_id === productId && r.status === 'approved');
 }
 
-export async function addReview(review: { product_id: string; customer_name: string; rating: number; title: string; body: string; city: string }) {
-  // Save locally in mock state (client-side runtime) or send to Supabase
+export async function getReviewsAdmin() {
+  return getLocalReviews();
+}
+
+export async function updateReviewStatus(reviewId: string, status: 'approved' | 'rejected') {
+  const revs = getLocalReviews();
+  const rev = revs.find(r => r.id === reviewId);
+  if (rev) {
+    rev.status = status;
+    saveLocalReviews();
+    return { success: true, data: rev };
+  }
+  return { success: false, error: 'Review not found' };
+}
+
+export async function addReview(review: { product_id: string; customer_name: string; rating: number; title: string; body: string; city: string; video_url?: string }) {
   if (isSupabaseConfigured()) {
     try {
       const supabase = createBrowserClient()
@@ -167,8 +259,9 @@ export async function addReview(review: { product_id: string; customer_name: str
         rating: review.rating,
         title: review.title,
         body: review.body,
-        status: 'approved', // Auto approve for testing ease
-        is_verified_purchase: true
+        status: 'pending', // Pending admin approval by default
+        is_verified_purchase: true,
+        video_url: review.video_url || ''
       }])
       if (!error) return { success: true, data }
     } catch (e) {
@@ -176,9 +269,9 @@ export async function addReview(review: { product_id: string; customer_name: str
     }
   }
   
-  // Local state update placeholder
+  const revs = getLocalReviews();
   const newReview = {
-    id: String(MOCK_REVIEWS.length + 1),
+    id: 'rev_' + Date.now(),
     product_id: review.product_id,
     customer_name: review.customer_name,
     city: review.city || 'India',
@@ -187,9 +280,12 @@ export async function addReview(review: { product_id: string; customer_name: str
     body: review.body,
     is_verified_purchase: true,
     created_at: new Date().toISOString(),
+    status: 'pending', // Starts as pending for admin approval!
+    video_url: review.video_url || '',
     admin_reply: null
   };
-  MOCK_REVIEWS.unshift(newReview);
+  revs.unshift(newReview);
+  saveLocalReviews();
   return { success: true, data: newReview };
 }
 

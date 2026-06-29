@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import {
   TrendingUp, ShoppingBag, Users, Calendar, AlertTriangle, CheckCircle,
@@ -13,7 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -192,12 +192,20 @@ export default function AdminDashboard() {
 
   const [orders, setOrders] = useState(MOCK_ORDERS_FULL)
   const [products, setProducts] = useState(MOCK_PRODUCTS)
-  const [reviews, setReviews] = useState(MOCK_REVIEWS)
+  const [reviews, setReviews] = useState<any[]>([])
   const [blogs, setBlogs] = useState(MOCK_BLOGS)
   const [slots, setSlots] = useState(MOCK_SLOTS)
   const [coupons, setCoupons] = useState(MOCK_COUPONS)
   const [customers] = useState(MOCK_CUSTOMERS)
   const [subscribers, setSubscribers] = useState(MOCK_SUBSCRIBERS)
+
+  useEffect(() => {
+    async function loadAdminReviews() {
+      const allRevs = await getReviewsAdmin();
+      setReviews(allRevs);
+    }
+    loadAdminReviews();
+  }, [activePanel]);
 
   // Order panel
   const [orderSearch, setOrderSearch] = useState('')
@@ -238,6 +246,12 @@ export default function AdminDashboard() {
   const updateOrderStatus = (id: string, status: string) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
     setSelectedOrder((prev: any) => prev?.id === id ? { ...prev, status } : prev)
+  }
+
+  const handleReviewStatus = async (reviewId: string, status: 'approved' | 'rejected') => {
+    await updateReviewStatus(reviewId, status);
+    const allRevs = await getReviewsAdmin();
+    setReviews(allRevs);
   }
 
   const addTracking = () => {
@@ -322,7 +336,7 @@ export default function AdminDashboard() {
     { id: 'products', label: 'Products', icon: <Package size={15} /> },
     { id: 'customers', label: 'Customers', icon: <Users size={15} /> },
     { id: 'subscriptions', label: 'Subscriptions', icon: <RefreshCw size={15} /> },
-    { id: 'reviews', label: 'Reviews', icon: <Star size={15} />, badge: reviews.length },
+    { id: 'reviews', label: 'Reviews', icon: <Star size={15} />, badge: reviews.filter(r => r.status === 'pending').length },
     { id: 'blogs', label: 'Blog Manager', icon: <BookOpen size={15} /> },
     { id: 'consultations', label: 'Consultations', icon: <Calendar size={15} /> },
     { id: 'subscribers', label: 'Email Subscribers', icon: <Mail size={15} /> },
@@ -861,91 +875,112 @@ export default function AdminDashboard() {
 
               <div className="glass-panel rounded-2xl border border-premium-gold/10 overflow-hidden">
                 <div className="grid grid-cols-6 gap-4 bg-warm-beige/30 dark:bg-dark-card/50 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50 border-b border-premium-gold/10">
-                  <span className="col-span-2">Customer</span>
-                  <span>Plan</span>
-                  <span>Razorpay ID</span>
-                  <span>Status</span>
-                  <span>Actions</span>
-                </div>
-                <div className="divide-y divide-premium-gold/8">
-                  {[
-                    { customer: 'Dr. Kabir Sen', email: 'kabir@example.com', plan: 'Sleep Gummies ₹329/mo', rzpId: 'sub_P987654321', status: 'Active', since: '2026-02-15' },
-                    { customer: 'Priya Kapoor', email: 'priya@example.com', plan: 'Sleep Gummies ₹329/mo', rzpId: 'sub_P123456789', status: 'Paused', since: '2026-03-01' },
-                  ].map((sub, i) => (
-                    <div key={i} className="grid grid-cols-6 gap-4 px-5 py-4 items-center text-xs">
-                      <div className="col-span-2">
-                        <p className="font-medium">{sub.customer}</p>
-                        <p className="text-[10px] text-matte-black/40 dark:text-dark-text/40">{sub.email}</p>
+                        <span className="col-span-2">Customer</span>
+                        <span>Plan</span>
+                        <span>Razorpay ID</span>
+                        <span>Status</span>
+                        <span>Actions</span>
                       </div>
-                      <span>{sub.plan}</span>
-                      <span className="font-mono text-premium-gold text-[10px]">{sub.rzpId}</span>
-                      <StatusBadge status={sub.status.toLowerCase()} />
-                      <div className="flex gap-3">
-                        <button className="text-[10px] font-bold text-premium-gold hover:underline">Pause</button>
-                        <button className="text-[10px] font-bold text-red-500 hover:underline">Cancel</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── REVIEWS ────────────────────────────────────────────────────────── */}
-          {activePanel === 'reviews' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="font-serif text-3xl font-light">Reviews Moderation</h2>
-                <p className="text-xs text-matte-black/40 mt-1">{reviews.length} pending review{reviews.length !== 1 ? 's' : ''}</p>
-              </div>
-
-              {reviews.length === 0 ? (
-                <div className="glass-panel p-16 rounded-2xl border border-premium-gold/10 text-center">
-                  <CheckCircle size={32} className="text-green-500 mx-auto mb-3" />
-                  <p className="font-serif text-lg text-matte-black/50 dark:text-dark-text/50">All reviews moderated</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {reviews.map((r, i) => (
-                    <div key={i} className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-0.5">
-                          <h4 className="font-serif font-semibold text-sm">{r.title || 'Review'}</h4>
-                          <div className="flex items-center gap-2 text-[11px] text-matte-black/50 dark:text-dark-text/50">
-                            <span className="font-semibold text-premium-gold">{r.customer_name}</span>
-                            <span>·</span>
-                            <span>{r.city}</span>
-                            <span>·</span>
-                            <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                      <div className="divide-y divide-premium-gold/8">
+                        {[
+                          { customer: 'Dr. Kabir Sen', email: 'kabir@example.com', plan: 'Sleep Gummies ₹329/mo', rzpId: 'sub_P987654321', status: 'Active', since: '2026-02-15' },
+                          { customer: 'Priya Kapoor', email: 'priya@example.com', plan: 'Sleep Gummies ₹329/mo', rzpId: 'sub_P123456789', status: 'Paused', since: '2026-03-01' },
+                        ].map((sub, i) => (
+                          <div key={i} className="grid grid-cols-6 gap-4 px-5 py-4 items-center text-xs">
+                            <div className="col-span-2">
+                              <p className="font-medium">{sub.customer}</p>
+                              <p className="text-[10px] text-matte-black/40 dark:text-dark-text/40">{sub.email}</p>
+                            </div>
+                            <span>{sub.plan}</span>
+                            <span className="font-mono text-premium-gold text-[10px]">{sub.rzpId}</span>
+                            <StatusBadge status={sub.status.toLowerCase()} />
+                            <div className="flex gap-3">
+                              <button className="text-[10px] font-bold text-premium-gold hover:underline">Pause</button>
+                              <button className="text-[10px] font-bold text-red-500 hover:underline">Cancel</button>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          {[...Array(5)].map((_, idx) => (
-                            <Star key={idx} size={12} className={idx < r.rating ? 'fill-premium-gold text-premium-gold' : 'text-neutral-200'} />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-matte-black/65 dark:text-dark-text/65 leading-relaxed">{r.body}</p>
-                      <div className="flex gap-3 pt-1 border-t border-premium-gold/8">
-                        <button
-                          onClick={() => setReviews(prev => prev.filter(rev => rev.id !== r.id))}
-                          className="flex items-center gap-1.5 bg-green-600 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-green-700 transition-colors"
-                        >
-                          <CheckCircle size={11} /> Approve & Publish
-                        </button>
-                        <button
-                          onClick={() => setReviews(prev => prev.filter(rev => rev.id !== r.id))}
-                          className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <XCircle size={11} /> Reject
-                        </button>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+
+                {/* ── REVIEWS ────────────────────────────────────────────────────────── */}
+                {activePanel === 'reviews' && (() => {
+                  const pendingReviews = reviews.filter(r => r.status === 'pending')
+                  return (
+                    <div className="space-y-6">
+                      <div>
+                        <h2 className="font-serif text-3xl font-light">Reviews Moderation</h2>
+                        <p className="text-xs text-matte-black/40 mt-1">{pendingReviews.length} pending review{pendingReviews.length !== 1 ? 's' : ''}</p>
+                      </div>
+
+                      {pendingReviews.length === 0 ? (
+                        <div className="glass-panel p-16 rounded-2xl border border-premium-gold/10 text-center">
+                          <CheckCircle size={32} className="text-green-500 mx-auto mb-3" />
+                          <p className="font-serif text-lg text-matte-black/50 dark:text-dark-text/50">All reviews moderated</p>
+                        </div>
+                      ) : (
+                        <div className="grid gap-4">
+                          {pendingReviews.map((r, i) => (
+                            <div key={i} className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4 md:space-y-0 flex flex-col md:flex-row gap-6 items-start">
+                              {r.video_url && (
+                                <div className="w-36 h-56 rounded-xl overflow-hidden bg-black border border-premium-gold/15 flex-shrink-0 relative">
+                                  <video
+                                    src={r.video_url}
+                                    controls
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 space-y-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="space-y-0.5">
+                                    <h4 className="font-serif text-sm font-semibold">{r.title || 'Review'}</h4>
+                                    <div className="flex items-center gap-2 text-[11px] text-matte-black/50 dark:text-dark-text/50">
+                                      <span className="font-semibold text-premium-gold">{r.customer_name}</span>
+                                      <span>·</span>
+                                      <span>{r.city}</span>
+                                      <span>·</span>
+                                      <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                                      {r.video_url && (
+                                        <span className="bg-premium-gold/15 text-premium-gold text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                          Video Review
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    {[...Array(5)].map((_, idx) => (
+                                      <Star key={idx} size={12} className={idx < r.rating ? 'fill-premium-gold text-premium-gold' : 'text-neutral-200'} />
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-matte-black/65 dark:text-dark-text/65 leading-relaxed">{r.body}</p>
+                                <div className="flex gap-3 pt-1 border-t border-premium-gold/8">
+                                  <button
+                                    onClick={() => handleReviewStatus(r.id, 'approved')}
+                                    className="flex items-center gap-1.5 bg-green-600 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-green-700 transition-colors"
+                                  >
+                                    <CheckCircle size={11} /> Approve & Publish
+                                  </button>
+                                  <button
+                                    onClick={() => handleReviewStatus(r.id, 'rejected')}
+                                    className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-bold px-4 py-2 rounded-full hover:bg-red-650 transition-colors"
+                                  >
+                                    <XCircle size={11} /> Reject
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
 
           {/* ── BLOG ───────────────────────────────────────────────────────────── */}
           {activePanel === 'blogs' && (
