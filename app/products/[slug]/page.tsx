@@ -141,8 +141,14 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               {product.slug === 'melatonin-gummies' ? (
                 <Product3DViewer />
               ) : (
-                <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-warm-beige/20 flex items-center justify-center">
-                  <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
+                <div className="relative flex h-[350px] w-full items-center justify-center cursor-pointer select-none overflow-visible">
+                  {/* Soft Lighting Backglow */}
+                  <div className="absolute inset-0 bg-premium-gold/20 blur-3xl -z-10 rounded-full scale-150 animate-pulse" />
+                  <div className="relative h-[250px] w-[150px] rounded-[30px] border border-premium-gold/30 shadow-2xl overflow-hidden flex items-center justify-center bg-[#1e130c]/90">
+                    <Image src={product.images[0]} alt={product.name} fill className="object-contain p-4" />
+                  </div>
+                  {/* Shadow */}
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[110px] h-[15px] bg-black/30 rounded-full blur-md" />
                 </div>
               )}
             </div>

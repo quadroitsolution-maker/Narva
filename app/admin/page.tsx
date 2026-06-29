@@ -217,7 +217,7 @@ export default function AdminDashboard() {
 
   // Product edit
   const [editingProduct, setEditingProduct] = useState<any>(null)
-  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '' })
+  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '', image_url: '' })
 
   // Product create
   const [isAddingProduct, setIsAddingProduct] = useState(false)
@@ -253,6 +253,9 @@ export default function AdminDashboard() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [customerSearch, setCustomerSearch] = useState('')
 
+  // Activity Log filter
+  const [activityFilter, setActivityFilter] = useState('All')
+
   // Reviews sub-tab
   const [reviewsTab, setReviewsTab] = useState<'pending' | 'published'>('pending')
 
@@ -280,7 +283,13 @@ export default function AdminDashboard() {
 
   const openProductEdit = (p: any) => {
     setEditingProduct(p)
-    setEditProductForm({ name: p.name, price: String(p.price), compare_price: String(p.compare_price), stock_qty: String(p.stock_qty) })
+    setEditProductForm({
+      name: p.name,
+      price: String(p.price),
+      compare_price: String(p.compare_price || ''),
+      stock_qty: String(p.stock_qty),
+      image_url: p.images && p.images.length > 0 ? p.images[0] : ''
+    })
   }
 
   const saveProductEdit = async () => {
@@ -290,6 +299,7 @@ export default function AdminDashboard() {
       price: parseFloat(editProductForm.price) || editingProduct.price,
       compare_price: parseFloat(editProductForm.compare_price) || editingProduct.compare_price,
       stock_qty: parseInt(editProductForm.stock_qty) || editingProduct.stock_qty,
+      images: editProductForm.image_url ? [editProductForm.image_url] : editingProduct.images
     });
     const allProds = await getProductsAdmin();
     setProducts(allProds);
@@ -805,6 +815,30 @@ export default function AdminDashboard() {
                             />
                           </div>
                         ))}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Image</label>
+                          <div className="grid grid-cols-1 gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  const url = URL.createObjectURL(file)
+                                  setEditProductForm(prev => ({ ...prev, image_url: url }))
+                                }
+                              }}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={editProductForm.image_url}
+                              onChange={e => setEditProductForm(prev => ({ ...prev, image_url: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="Image URL"
+                            />
+                          </div>
+                        </div>
                       </div>
                       <button onClick={saveProductEdit} className="w-full bg-premium-gold text-white text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-premium-gold/90 transition-colors">
                         <Save size={13} /> Save Changes
@@ -885,14 +919,28 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Image URL</label>
-                          <input
-                            type="text"
-                            value={newProductForm.image_url}
-                            onChange={e => setNewProductForm(prev => ({ ...prev, image_url: e.target.value }))}
-                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
-                            placeholder="https://unsplash.com/..."
-                          />
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Image</label>
+                          <div className="grid grid-cols-1 gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  const url = URL.createObjectURL(file)
+                                  setNewProductForm(prev => ({ ...prev, image_url: url }))
+                                }
+                              }}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={newProductForm.image_url}
+                              onChange={e => setNewProductForm(prev => ({ ...prev, image_url: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none"
+                              placeholder="Image URL"
+                            />
+                          </div>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Description</label>
@@ -1521,27 +1569,55 @@ export default function AdminDashboard() {
               {/* Filter pills */}
               <div className="flex gap-2 flex-wrap">
                 {['All', 'Orders', 'Reviews', 'Consultations', 'Subscribers', 'Coupons'].map(f => (
-                  <button key={f} className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors ${f === 'All' ? 'bg-premium-gold text-white border-premium-gold' : 'border-premium-gold/20 text-matte-black/50 dark:text-dark-text/50 hover:border-premium-gold/40'}`}>
+                  <button
+                    key={f}
+                    onClick={() => setActivityFilter(f)}
+                    className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors ${
+                      f === activityFilter
+                        ? 'bg-premium-gold text-white border-premium-gold'
+                        : 'border-premium-gold/20 text-matte-black/50 dark:text-dark-text/50 hover:border-premium-gold/40'
+                    }`}
+                  >
                     {f}
                   </button>
                 ))}
               </div>
 
               <div className="space-y-3">
-                {MOCK_ACTIVITY.map(a => (
-                  <div key={a.id} className="glass-panel p-4 rounded-2xl border border-premium-gold/8 flex items-start gap-4 hover:border-premium-gold/20 transition-colors">
-                    <ActivityIcon type={a.type} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-matte-black/80 dark:text-dark-text/80 leading-relaxed">{a.message}</p>
-                      <p className="text-[10px] text-matte-black/35 dark:text-dark-text/35 mt-0.5 flex items-center gap-1">
-                        <Clock size={10} /> {a.time}
+                {(() => {
+                  const typeMap: Record<string, string> = {
+                    'Orders': 'order',
+                    'Reviews': 'review',
+                    'Consultations': 'consultation',
+                    'Subscribers': 'subscriber',
+                    'Coupons': 'coupon'
+                  }
+                  const filtered = MOCK_ACTIVITY.filter(a => {
+                    if (activityFilter === 'All') return true
+                    return a.type === typeMap[activityFilter]
+                  })
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-xs text-matte-black/40 dark:text-dark-text/40 italic text-center py-8">
+                        No activity of this type logged yet.
                       </p>
+                    )
+                  }
+                  return filtered.map(a => (
+                    <div key={a.id} className="glass-panel p-4 rounded-2xl border border-premium-gold/8 flex items-start gap-4 hover:border-premium-gold/20 transition-colors">
+                      <ActivityIcon type={a.type} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-matte-black/80 dark:text-dark-text/80 leading-relaxed">{a.message}</p>
+                        <p className="text-[10px] text-matte-black/35 dark:text-dark-text/35 mt-0.5 flex items-center gap-1">
+                          <Clock size={10} /> {a.time}
+                        </p>
+                      </div>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-warm-beige/50 dark:bg-dark-card/50 text-matte-black/40 dark:text-dark-text/40`}>
+                        {a.type}
+                      </span>
                     </div>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-warm-beige/50 dark:bg-dark-card/50 text-matte-black/40 dark:text-dark-text/40`}>
-                      {a.type}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                })()}
               </div>
 
               <div className="text-center py-4">
