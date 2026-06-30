@@ -245,13 +245,6 @@ export default function ConsultationPage() {
               <div className="p-5 rounded-2xl border border-premium-gold/15 bg-warm-beige/25 dark:bg-dark-card/20 space-y-3 text-left text-xs max-w-sm mx-auto">
                 <p><strong>Patient Name:</strong> {name}</p>
                 <p><strong>Appointment Time:</strong> {selectedSlot.date} at {selectedSlot.start_time}</p>
-                <p className="flex items-center gap-1.5 pt-2 border-t border-premium-gold/10">
-                  <Video size={14} className="text-premium-gold" />
-                  <strong>Meeting Portal:</strong>
-                  <a href={bookingResult.meetingLink} target="_blank" rel="noopener noreferrer" className="text-premium-gold hover:underline font-semibold flex items-center gap-0.5">
-                    Google Meet Link <ArrowRight size={10} />
-                  </a>
-                </p>
               </div>
 
               {/* Prep notes advice */}
