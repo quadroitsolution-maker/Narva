@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -206,6 +206,8 @@ export default function AdminDashboard() {
       setReviews(allRevs);
       const allProds = await getProductsAdmin();
       setProducts(allProds);
+      const allBlogs = await getBlogs();
+      setBlogs(allBlogs);
     }
     loadAdminData();
   }, [activePanel]);
@@ -235,12 +237,26 @@ export default function AdminDashboard() {
 
   // Blog edit
   const [editingBlog, setEditingBlog] = useState<any>(null)
-  const [editBlogForm, setEditBlogForm] = useState({ title: '', category: '', excerpt: '' })
+  const [editBlogForm, setEditBlogForm] = useState({
+    title: '',
+    category: 'Sleep Health',
+    excerpt: '',
+    author_name: '',
+    read_time: '',
+    cover_image_url: '',
+    body: ''
+  })
 
   // Blog create
-  const [newBlogTitle, setNewBlogTitle] = useState('')
-  const [newBlogCategory, setNewBlogCategory] = useState('Sleep Health')
-  const [newBlogExcerpt, setNewBlogExcerpt] = useState('')
+  const [newBlogForm, setNewBlogForm] = useState({
+    title: '',
+    category: 'Sleep Health',
+    excerpt: '',
+    author_name: 'Dr. Rohan Mehta, MBBS (AIIMS)',
+    read_time: '3 min read',
+    cover_image_url: '',
+    body: ''
+  })
 
   // Coupon create
   const [newCouponCode, setNewCouponCode] = useState('')
@@ -352,32 +368,60 @@ export default function AdminDashboard() {
 
   const openBlogEdit = (b: any) => {
     setEditingBlog(b)
-    setEditBlogForm({ title: b.title, category: b.category, excerpt: b.excerpt })
+    setEditBlogForm({
+      title: b.title,
+      category: b.category,
+      excerpt: b.excerpt,
+      author_name: b.author_name || 'Dr. Rohan Mehta, MBBS (AIIMS)',
+      read_time: b.read_time || '3 min read',
+      cover_image_url: b.cover_image_url || '',
+      body: b.body || ''
+    })
   }
 
-  const saveBlogEdit = () => {
-    setBlogs(prev => prev.map(b => b.id === editingBlog.id ? { ...b, ...editBlogForm } : b))
+  const saveBlogEdit = async () => {
+    if (!editingBlog) return
+    await updateBlog(editingBlog.id, editBlogForm)
+    const allBlogs = await getBlogs()
+    setBlogs(allBlogs)
     setEditingBlog(null)
   }
 
-  const createBlog = (e: React.FormEvent) => {
+  const createBlog = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newBlogTitle) return
-    setBlogs(prev => [{
+    if (!newBlogForm.title) return
+    await addBlog({
       id: 'b_' + Date.now(),
-      slug: newBlogTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      title: newBlogTitle,
-      excerpt: newBlogExcerpt,
-      category: newBlogCategory,
-      cover_image_url: 'https://images.unsplash.com/photo-1508962914676-134849a727f0?q=80&w=600',
+      slug: newBlogForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      title: newBlogForm.title,
+      excerpt: newBlogForm.excerpt,
+      category: newBlogForm.category,
+      cover_image_url: newBlogForm.cover_image_url || 'https://images.unsplash.com/photo-1508962914676-134849a727f0?q=80&w=600',
+      author_name: newBlogForm.author_name || 'Dr. Rohan Mehta, MBBS (AIIMS)',
+      author_image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=150',
+      published_at: new Date().toISOString(),
+      read_time: newBlogForm.read_time || '3 min read',
+      body: newBlogForm.body || '<p>Blog body...</p>'
+    })
+    const allBlogs = await getBlogs()
+    setBlogs(allBlogs)
+    setNewBlogForm({
+      title: '',
+      category: 'Sleep Health',
+      excerpt: '',
       author_name: 'Dr. Rohan Mehta, MBBS (AIIMS)',
-      author_image_url: '',
-      published_at: new Date().toISOString().split('T')[0],
       read_time: '3 min read',
-      body: '<p>Blog body...</p>',
-    }, ...prev])
-    setNewBlogTitle('')
-    setNewBlogExcerpt('')
+      cover_image_url: '',
+      body: ''
+    })
+  }
+
+  const deleteBlog = async (id: string) => {
+    if (confirm("Are you sure you want to delete this blog post?")) {
+      await removeBlog(id)
+      const allBlogs = await getBlogs()
+      setBlogs(allBlogs)
+    }
   }
 
   const createCoupon = (e: React.FormEvent) => {
@@ -1324,23 +1368,91 @@ export default function AdminDashboard() {
               {/* Create form */}
               <form onSubmit={createBlog} className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4 max-w-xl">
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-premium-gold">New Post</h3>
-                <input
-                  required type="text" placeholder="Article title…" value={newBlogTitle}
-                  onChange={e => setNewBlogTitle(e.target.value)}
-                  className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-premium-gold/40"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={newBlogCategory} onChange={e => setNewBlogCategory(e.target.value)} className="bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2.5 rounded-xl">
-                    {['Sleep Health', 'Science & Research', 'Performance Nutrition', 'Mental Wellness'].map(c => <option key={c}>{c}</option>)}
-                  </select>
-                  <input type="text" placeholder="Author name" className="bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none" />
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Article Title</label>
+                  <input
+                    required type="text" placeholder="e.g. How to Fix Your Circadian Rhythm" value={newBlogForm.title}
+                    onChange={e => setNewBlogForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none focus:border-premium-gold/40"
+                  />
                 </div>
-                <textarea
-                  rows={2} placeholder="Short excerpt…" value={newBlogExcerpt}
-                  onChange={e => setNewBlogExcerpt(e.target.value)}
-                  className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-3 rounded-xl resize-none focus:outline-none focus:border-premium-gold/40"
-                />
-                <button type="submit" className="bg-premium-gold text-white text-[11px] font-bold px-6 py-2.5 rounded-xl hover:bg-premium-gold/90 transition-colors">
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Category</label>
+                    <select
+                      value={newBlogForm.category}
+                      onChange={e => setNewBlogForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2.5 rounded-xl"
+                    >
+                      {['Sleep Health', 'Science & Research', 'Performance Nutrition', 'Mental Wellness'].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Author Name</label>
+                    <input
+                      type="text" placeholder="Dr. Rohan Mehta" value={newBlogForm.author_name}
+                      onChange={e => setNewBlogForm(prev => ({ ...prev, author_name: e.target.value }))}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Read Time</label>
+                    <input
+                      type="text" placeholder="5 min read" value={newBlogForm.read_time}
+                      onChange={e => setNewBlogForm(prev => ({ ...prev, read_time: e.target.value }))}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Short Excerpt</label>
+                    <input
+                      required type="text" placeholder="Short description summary..." value={newBlogForm.excerpt}
+                      onChange={e => setNewBlogForm(prev => ({ ...prev, excerpt: e.target.value }))}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Cover Image</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const url = URL.createObjectURL(file)
+                          setNewBlogForm(prev => ({ ...prev, cover_image_url: url }))
+                        }
+                      }}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={newBlogForm.cover_image_url}
+                      onChange={e => setNewBlogForm(prev => ({ ...prev, cover_image_url: e.target.value }))}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                      placeholder="Or enter image URL"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Article Content (HTML / Text)</label>
+                  <textarea
+                    required rows={8} placeholder="Write the full blog post content here (you can use HTML tags like <h2>, <p>, etc.)" value={newBlogForm.body}
+                    onChange={e => setNewBlogForm(prev => ({ ...prev, body: e.target.value }))}
+                    className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-3 rounded-xl resize-y focus:outline-none focus:border-premium-gold/40 font-mono"
+                  />
+                </div>
+
+                <button type="submit" className="w-full bg-premium-gold text-white text-[11px] font-bold py-3 rounded-xl hover:bg-premium-gold/90 transition-colors">
                   Publish Post
                 </button>
               </form>
@@ -1363,7 +1475,7 @@ export default function AdminDashboard() {
                       <button onClick={() => openBlogEdit(b)} className="flex items-center gap-1 text-[10px] font-bold text-premium-gold hover:underline">
                         <Edit2 size={11} /> Edit
                       </button>
-                      <button onClick={() => setBlogs(prev => prev.filter(bl => bl.id !== b.id))} className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline">
+                      <button onClick={() => deleteBlog(b.id)} className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline">
                         <Trash2 size={11} /> Delete
                       </button>
                     </div>
@@ -1377,33 +1489,92 @@ export default function AdminDashboard() {
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                     <motion.div
                       initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                      className="glass-panel w-full max-w-sm rounded-3xl p-7 shadow-2xl border border-premium-gold/15 space-y-5 relative"
+                      className="glass-panel w-full max-w-lg rounded-3xl p-7 shadow-2xl border border-premium-gold/15 space-y-5 relative"
                     >
                       <button onClick={() => setEditingBlog(null)} className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-warm-beige/50 transition-colors"><X size={15} /></button>
                       <div>
                         <p className="text-[10px] uppercase tracking-widest text-premium-gold font-bold">Edit Post</p>
                         <h3 className="font-serif text-lg mt-0.5">Update Article</h3>
                       </div>
-                      <div className="space-y-3">
-                        <input
-                          type="text" value={editBlogForm.title}
-                          onChange={e => setEditBlogForm(p => ({ ...p, title: e.target.value }))}
-                          placeholder="Title"
-                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
-                        />
-                        <select
-                          value={editBlogForm.category}
-                          onChange={e => setEditBlogForm(p => ({ ...p, category: e.target.value }))}
-                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2.5 rounded-xl"
-                        >
-                          {['Sleep Health', 'Science & Research', 'Performance Nutrition', 'Mental Wellness'].map(c => <option key={c}>{c}</option>)}
-                        </select>
-                        <textarea
-                          rows={3} value={editBlogForm.excerpt}
-                          onChange={e => setEditBlogForm(p => ({ ...p, excerpt: e.target.value }))}
-                          placeholder="Excerpt"
-                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-3 rounded-xl resize-none focus:outline-none"
-                        />
+                      <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Title</label>
+                          <input
+                            type="text" value={editBlogForm.title}
+                            onChange={e => setEditBlogForm(p => ({ ...p, title: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Category</label>
+                            <select
+                              value={editBlogForm.category}
+                              onChange={e => setEditBlogForm(p => ({ ...p, category: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2.5 rounded-xl"
+                            >
+                              {['Sleep Health', 'Science & Research', 'Performance Nutrition', 'Mental Wellness'].map(c => <option key={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Author</label>
+                            <input
+                              type="text" value={editBlogForm.author_name}
+                              onChange={e => setEditBlogForm(p => ({ ...p, author_name: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Read Time</label>
+                            <input
+                              type="text" value={editBlogForm.read_time}
+                              onChange={e => setEditBlogForm(p => ({ ...p, read_time: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Excerpt</label>
+                            <input
+                              type="text" value={editBlogForm.excerpt}
+                              onChange={e => setEditBlogForm(p => ({ ...p, excerpt: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Cover Image</label>
+                          <div className="grid grid-cols-1 gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  const url = URL.createObjectURL(file)
+                                  setEditBlogForm(p => ({ ...p, cover_image_url: url }))
+                                }
+                              }}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-2 rounded-xl focus:outline-none cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={editBlogForm.cover_image_url}
+                              onChange={e => setEditBlogForm(p => ({ ...p, cover_image_url: e.target.value }))}
+                              className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                              placeholder="Image URL"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Content Body (HTML/Text)</label>
+                          <textarea
+                            rows={6} value={editBlogForm.body}
+                            onChange={e => setEditBlogForm(p => ({ ...p, body: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs p-3 rounded-xl resize-y focus:outline-none font-mono"
+                          />
+                        </div>
                       </div>
                       <button onClick={saveBlogEdit} className="w-full bg-premium-gold text-white text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-premium-gold/90 transition-colors">
                         <Save size={13} /> Save Changes

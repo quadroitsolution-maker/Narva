@@ -364,6 +364,58 @@ export async function addReview(review: { product_id: string; customer_name: str
   return { success: true, data: newReview };
 }
 
+// Helper to load and save blogs to localStorage
+let localBlogs: any[] = [];
+
+export function getLocalBlogs() {
+  if (localBlogs.length > 0) return localBlogs;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_blogs');
+    if (stored) {
+      try {
+        localBlogs = JSON.parse(stored);
+        return localBlogs;
+      } catch (e) {
+        console.error("Failed to parse local storage blogs", e);
+      }
+    }
+    localStorage.setItem('narva_blogs', JSON.stringify(MOCK_BLOGS));
+  }
+  localBlogs = [...MOCK_BLOGS];
+  return localBlogs;
+}
+
+export function saveLocalBlogs() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_blogs', JSON.stringify(localBlogs));
+  }
+}
+
+export async function addBlog(blog: any) {
+  const blogs = getLocalBlogs();
+  blogs.unshift(blog);
+  saveLocalBlogs();
+  return { success: true, data: blog };
+}
+
+export async function removeBlog(id: string) {
+  let blogs = getLocalBlogs();
+  blogs = blogs.filter(b => b.id !== id);
+  localBlogs = blogs;
+  saveLocalBlogs();
+  return { success: true };
+}
+
+export async function updateBlog(id: string, fields: any) {
+  const blogs = getLocalBlogs();
+  const index = blogs.findIndex(b => b.id === id);
+  if (index !== -1) {
+    blogs[index] = { ...blogs[index], ...fields };
+    saveLocalBlogs();
+  }
+  return { success: true };
+}
+
 export async function getBlogs() {
   if (isSupabaseConfigured()) {
     try {
@@ -374,7 +426,7 @@ export async function getBlogs() {
       console.warn(e)
     }
   }
-  return MOCK_BLOGS;
+  return getLocalBlogs();
 }
 
 export async function getBlogBySlug(slug: string) {
@@ -387,7 +439,8 @@ export async function getBlogBySlug(slug: string) {
       console.warn(e)
     }
   }
-  return MOCK_BLOGS.find(b => b.slug === slug) || MOCK_BLOGS[0];
+  const blogsList = getLocalBlogs();
+  return blogsList.find(b => b.slug === slug) || blogsList[0];
 }
 
 export async function getSlots() {
