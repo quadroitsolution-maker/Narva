@@ -3,14 +3,16 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { Instagram, Facebook, Youtube, ArrowRight, Check } from 'lucide-react'
+import { addSubscriber } from '@/lib/db'
 
 export default function Footer() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (email.trim()) {
+      await addSubscriber({ email: email.trim(), source: 'Footer' })
       setSubscribed(true)
       setEmail('')
       setTimeout(() => setSubscribed(false), 5000)

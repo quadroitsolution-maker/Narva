@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, MOCK_SUBSCRIBERS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings, getCoupons, addCoupon, removeCoupon, getSubscribers } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -56,14 +56,6 @@ const MOCK_CUSTOMERS = [
   { id: 'c5', name: 'Vikram Nair', email: 'vikram@example.com', phone: '+91 88888 99999', city: 'Chennai', totalOrders: 2, totalSpend: 798, lastOrder: '2026-06-10', status: 'inactive', joined: '2026-05-12', plan: 'One-time' },
 ]
 
-const MOCK_SUBSCRIBERS = [
-  { id: 'sub1', email: 'arya@example.com', name: 'Arya Sharma', joined: '2026-06-24', source: 'Homepage CTA' },
-  { id: 'sub2', email: 'priya.k@gmail.com', name: 'Priya K.', joined: '2026-06-22', source: 'Footer' },
-  { id: 'sub3', email: 'health@vikramnair.com', name: 'Vikram N.', joined: '2026-06-20', source: 'Blog Post' },
-  { id: 'sub4', email: 'meena.s@outlook.com', name: 'Meena S.', joined: '2026-06-19', source: 'Homepage CTA' },
-  { id: 'sub5', email: 'kabir.docs@gmail.com', name: 'Dr. Kabir Sen', joined: '2026-06-15', source: 'Science Page' },
-  { id: 'sub6', email: 'aditi.rao@yahoo.com', name: 'Aditi Rao', joined: '2026-06-10', source: 'Blog Post' },
-]
 
 const MOCK_ACTIVITY = [
   { id: 'a1', type: 'order', icon: 'order', message: 'New order #ord_4 from Priya Kapoor — ₹399', time: '2 min ago', color: 'text-green-500' },
@@ -213,6 +205,10 @@ export default function AdminDashboard() {
       setSlots(allSlots);
       const allBookings = await getBookings();
       setBookings(allBookings);
+      const allCoupons = await getCoupons();
+      setCoupons(allCoupons);
+      const allSubs = await getSubscribers();
+      setSubscribers(allSubs);
     }
     loadAdminData();
   }, [activePanel]);
@@ -429,11 +425,27 @@ export default function AdminDashboard() {
     }
   }
 
-  const createCoupon = (e: React.FormEvent) => {
+  const createCoupon = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newCouponCode) return
-    setCoupons(prev => [...prev, { code: newCouponCode.toUpperCase(), type: newCouponType, value: parseFloat(newCouponVal) || 10, min_order_value: 299, max_discount: 100 }])
+    await addCoupon({
+      code: newCouponCode.toUpperCase(),
+      type: newCouponType,
+      value: parseFloat(newCouponVal) || 10,
+      min_order_value: 299,
+      max_discount: 100
+    })
+    const allCoupons = await getCoupons()
+    setCoupons(allCoupons)
     setNewCouponCode(''); setNewCouponVal('')
+  }
+
+  const deleteCoupon = async (code: string) => {
+    if (confirm("Are you sure you want to remove this coupon code?")) {
+      await removeCoupon(code)
+      const allCoupons = await getCoupons()
+      setCoupons(allCoupons)
+    }
   }
 
   const createSlot = async (e: React.FormEvent) => {
@@ -1819,7 +1831,7 @@ export default function AdminDashboard() {
                       <span className="capitalize">{c.type === 'pct' ? 'Percentage' : c.type === 'flat' ? 'Flat' : 'Free Shipping'}</span>
                       <span className="font-semibold">{c.type === 'pct' ? `${c.value}%` : `₹${c.value}`}</span>
                       <span>₹{c.min_order_value}</span>
-                      <button onClick={() => setCoupons(prev => prev.filter(coup => coup.code !== c.code))} className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline">
+                      <button onClick={() => deleteCoupon(c.code)} className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline">
                         <Trash2 size={11} /> Delete
                       </button>
                     </div>

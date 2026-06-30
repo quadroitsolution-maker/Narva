@@ -11,7 +11,7 @@ import AiAssistant from '@/components/AiAssistant'
 import HeroVideo from '@/components/HeroVideo'
 import SleepQuiz from '@/components/SleepQuiz'
 import HealthCalculators from '@/components/HealthCalculators'
-import { getProducts, getReviews, getBlogs } from '@/lib/db'
+import { getProducts, getReviews, getBlogs, addSubscriber } from '@/lib/db'
 import { useCart } from '@/lib/store'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -619,7 +619,14 @@ export default function Home() {
               </p>
             </div>
             <form
-              onSubmit={(e) => { e.preventDefault(); setEmail('') }}
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (email.trim()) {
+                  await addSubscriber({ email: email.trim(), source: 'Homepage CTA' })
+                  setEmail('')
+                  alert('Thank you for subscribing!')
+                }
+              }}
               className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
             >
               <input

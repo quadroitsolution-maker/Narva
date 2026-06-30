@@ -598,8 +598,112 @@ export async function bookSlot(booking: { slotId: string; name: string; email: s
   return { success: true, meetingLink: 'https://meet.google.com/abc-defg-hij' };
 }
 
+export const MOCK_SUBSCRIBERS = [
+  { id: 'sub1', email: 'arya@example.com', name: 'Arya Sharma', joined: '2026-06-24', source: 'Homepage CTA' },
+  { id: 'sub2', email: 'priya.k@gmail.com', name: 'Priya K.', joined: '2026-06-22', source: 'Footer' },
+  { id: 'sub3', email: 'health@vikramnair.com', name: 'Vikram N.', joined: '2026-06-20', source: 'Blog Post' },
+  { id: 'sub4', email: 'meena.s@outlook.com', name: 'Meena S.', joined: '2026-06-19', source: 'Homepage CTA' },
+  { id: 'sub5', email: 'kabir.docs@gmail.com', name: 'Dr. Kabir Sen', joined: '2026-06-15', source: 'Science Page' },
+  { id: 'sub6', email: 'aditi.rao@yahoo.com', name: 'Aditi Rao', joined: '2026-06-10', source: 'Blog Post' }
+];
+
+// Helper to load and save coupons to localStorage
+let localCoupons: any[] = [];
+
+export function getLocalCoupons() {
+  if (localCoupons.length > 0) return localCoupons;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_coupons');
+    if (stored) {
+      try {
+        localCoupons = JSON.parse(stored);
+        return localCoupons;
+      } catch (e) {
+        console.error("Failed to parse local storage coupons", e);
+      }
+    }
+    localStorage.setItem('narva_coupons', JSON.stringify(MOCK_COUPONS));
+  }
+  localCoupons = [...MOCK_COUPONS];
+  return localCoupons;
+}
+
+export function saveLocalCoupons() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_coupons', JSON.stringify(localCoupons));
+  }
+}
+
+export async function addCoupon(coupon: any) {
+  const coupons = getLocalCoupons();
+  coupons.push(coupon);
+  saveLocalCoupons();
+  return { success: true, data: coupon };
+}
+
+export async function removeCoupon(code: string) {
+  let coupons = getLocalCoupons();
+  coupons = coupons.filter(c => c.code.toUpperCase() !== code.toUpperCase());
+  localCoupons = coupons;
+  saveLocalCoupons();
+  return { success: true };
+}
+
+export async function getCoupons() {
+  return getLocalCoupons();
+}
+
+// Helper to load and save subscribers to localStorage
+let localSubscribers: any[] = [];
+
+export function getLocalSubscribers() {
+  if (localSubscribers.length > 0) return localSubscribers;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_subscribers');
+    if (stored) {
+      try {
+        localSubscribers = JSON.parse(stored);
+        return localSubscribers;
+      } catch (e) {
+        console.error("Failed to parse local storage subscribers", e);
+      }
+    }
+    localStorage.setItem('narva_subscribers', JSON.stringify(MOCK_SUBSCRIBERS));
+  }
+  localSubscribers = [...MOCK_SUBSCRIBERS];
+  return localSubscribers;
+}
+
+export function saveLocalSubscribers() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_subscribers', JSON.stringify(localSubscribers));
+  }
+}
+
+export async function addSubscriber(sub: { email: string; name?: string; source?: string }) {
+  const subscribersList = getLocalSubscribers();
+  if (subscribersList.some(s => s.email.toLowerCase() === sub.email.toLowerCase())) {
+    return { success: true, message: 'Already subscribed' };
+  }
+  const newSub = {
+    id: 'sub_' + Date.now(),
+    email: sub.email,
+    name: sub.name || sub.email.split('@')[0],
+    joined: new Date().toISOString().split('T')[0],
+    source: sub.source || 'Website'
+  };
+  subscribersList.unshift(newSub);
+  saveLocalSubscribers();
+  return { success: true, data: newSub };
+}
+
+export async function getSubscribers() {
+  return getLocalSubscribers();
+}
+
 export async function validateCoupon(code: string, subtotal: number) {
-  const coupon = MOCK_COUPONS.find(c => c.code.toUpperCase() === code.toUpperCase());
+  const couponsList = getLocalCoupons();
+  const coupon = couponsList.find(c => c.code.toUpperCase() === code.toUpperCase());
   if (!coupon) return { valid: false, message: 'Invalid coupon code.' };
   if (subtotal < coupon.min_order_value) return { valid: false, message: `Minimum order value for this coupon is ₹${coupon.min_order_value}.` };
   
