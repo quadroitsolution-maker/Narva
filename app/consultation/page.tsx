@@ -112,21 +112,27 @@ export default function ConsultationPage() {
                       </label>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto p-1 border border-premium-gold/15 dark:border-white/5 rounded-xl">
-                        {slots.map((slot) => (
-                          <button
-                            key={slot.id}
-                            type="button"
-                            onClick={() => setSelectedSlot(slot)}
-                            className={`p-3 rounded-lg border text-center text-xs transition-all flex flex-col items-center justify-center gap-1 ${
-                              selectedSlot?.id === slot.id
-                                ? 'border-premium-gold bg-premium-gold text-white font-semibold'
-                                : 'border-premium-gold/10 hover:border-premium-gold bg-warm-beige/10 dark:bg-dark-card/30'
-                            }`}
-                          >
-                            <span className="flex items-center gap-1"><Calendar size={10} /> {slot.date}</span>
-                            <span className="flex items-center gap-1 font-bold"><Clock size={10} /> {slot.start_time}</span>
-                          </button>
-                        ))}
+                        {slots.filter(s => !s.is_booked).length === 0 ? (
+                          <div className="col-span-3 text-center py-6 text-xs text-matte-black/40 dark:text-dark-text/40 italic">
+                            No available slots left. Check back soon!
+                          </div>
+                        ) : (
+                          slots.filter(s => !s.is_booked).map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              onClick={() => setSelectedSlot(slot)}
+                              className={`p-3 rounded-lg border text-center text-xs transition-all flex flex-col items-center justify-center gap-1 ${
+                                selectedSlot?.id === slot.id
+                                  ? 'border-premium-gold bg-premium-gold text-white font-semibold'
+                                  : 'border-premium-gold/10 hover:border-premium-gold bg-warm-beige/10 dark:bg-dark-card/30'
+                              }`}
+                            >
+                              <span className="flex items-center gap-1"><Calendar size={10} /> {slot.date}</span>
+                              <span className="flex items-center gap-1 font-bold"><Clock size={10} /> {slot.start_time}</span>
+                            </button>
+                          ))
+                        )}
                       </div>
                       
                       {selectedSlot && (

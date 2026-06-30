@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -199,6 +199,7 @@ export default function AdminDashboard() {
   const [coupons, setCoupons] = useState(MOCK_COUPONS)
   const [customers] = useState(MOCK_CUSTOMERS)
   const [subscribers, setSubscribers] = useState(MOCK_SUBSCRIBERS)
+  const [bookings, setBookings] = useState<any[]>([])
 
   useEffect(() => {
     async function loadAdminData() {
@@ -208,6 +209,10 @@ export default function AdminDashboard() {
       setProducts(allProds);
       const allBlogs = await getBlogs();
       setBlogs(allBlogs);
+      const allSlots = await getSlots();
+      setSlots(allSlots);
+      const allBookings = await getBookings();
+      setBookings(allBookings);
     }
     loadAdminData();
   }, [activePanel]);
@@ -431,11 +436,27 @@ export default function AdminDashboard() {
     setNewCouponCode(''); setNewCouponVal('')
   }
 
-  const createSlot = (e: React.FormEvent) => {
+  const createSlot = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newSlotDate) return
-    setSlots(prev => [...prev, { id: 's_' + Date.now(), date: newSlotDate, start_time: newSlotTime, end_time: '', is_booked: false }])
+    await addSlot({
+      id: 's_' + Date.now(),
+      date: newSlotDate,
+      start_time: newSlotTime,
+      end_time: '',
+      is_booked: false
+    })
+    const allSlots = await getSlots()
+    setSlots(allSlots)
     setNewSlotDate('')
+  }
+
+  const deleteSlot = async (id: string) => {
+    if (confirm("Are you sure you want to remove this availability slot?")) {
+      await removeSlot(id)
+      const allSlots = await getSlots()
+      setSlots(allSlots)
+    }
   }
 
   const exportSubscribersCsv = () => {
@@ -1613,20 +1634,32 @@ export default function AdminDashboard() {
                 </form>
 
                 {/* Today's Bookings */}
-                <div className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4">
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-premium-gold">Today's Bookings</h3>
-                  {[
-                    { patient: 'Arya Sharma', time: '10:00 AM', topic: 'Sleep Cycle Assessment' },
-                    { patient: 'Rohan Mehta', time: '02:00 PM', topic: 'Performance Supplements' },
-                  ].map((b, i) => (
-                    <div key={i} className="flex items-center justify-between py-3 border-b border-premium-gold/8 last:border-0">
-                      <div>
-                        <p className="text-xs font-semibold">{b.patient}</p>
-                        <p className="text-[10px] text-matte-black/40 dark:text-dark-text/40">{b.topic}</p>
-                      </div>
-                      <span className="text-[11px] font-bold text-premium-gold">{b.time}</span>
-                    </div>
-                  ))}
+                <div className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4 max-h-[350px] overflow-y-auto">
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-premium-gold text-left">Active Bookings ({bookings.length})</h3>
+                  {bookings.length === 0 ? (
+                    <p className="text-xs text-matte-black/40 dark:text-dark-text/40 italic py-4 text-center">No appointments scheduled yet.</p>
+                  ) : (
+                    bookings.map((b, i) => {
+                      const matchingSlot = slots.find(s => s.id === b.slot_id)
+                      return (
+                        <div key={i} className="py-3 border-b border-premium-gold/8 last:border-0 text-xs space-y-1 text-left">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-matte-black dark:text-dark-text">{b.customer_name}</p>
+                            <span className="text-[10px] font-bold text-premium-gold uppercase tracking-wider bg-premium-gold/10 px-2 py-0.5 rounded-full">
+                              {matchingSlot ? matchingSlot.start_time : 'Scheduled'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-matte-black/50 dark:text-dark-text/50">
+                            <span>{matchingSlot ? matchingSlot.date : 'Date TBD'}</span>
+                            <span>{b.customer_phone}</span>
+                          </div>
+                          <p className="text-[10px] text-matte-black/70 dark:text-dark-text/70 italic leading-snug">
+                            {b.notes}
+                          </p>
+                        </div>
+                      )
+                    })
+                  )}
                 </div>
               </div>
 
@@ -1645,7 +1678,7 @@ export default function AdminDashboard() {
                       <span className="font-semibold">{s.start_time}</span>
                       <StatusBadge status={s.is_booked ? 'confirmed' : 'active'} />
                       <button
-                        onClick={() => setSlots(prev => prev.filter(sl => sl.id !== s.id))}
+                        onClick={() => deleteSlot(s.id)}
                         className="text-[10px] font-bold text-red-500 hover:underline flex items-center gap-1"
                       >
                         <Trash2 size={11} /> Remove

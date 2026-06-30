@@ -196,13 +196,24 @@ export const MOCK_BLOGS = [
   }
 ];
 
+const getFormattedDate = (daysAhead: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return d.toISOString().split('T')[0]; // returns YYYY-MM-DD
+};
+
 export const MOCK_SLOTS = [
-  { id: 's1', date: '2026-06-25', start_time: '10:00 AM', end_time: '10:30 AM', is_booked: false },
-  { id: 's2', date: '2026-06-25', start_time: '11:00 AM', end_time: '11:30 AM', is_booked: false },
-  { id: 's3', date: '2026-06-25', start_time: '02:00 PM', end_time: '02:30 PM', is_booked: false },
-  { id: 's4', date: '2026-06-25', start_time: '03:00 PM', end_time: '03:30 PM', is_booked: false },
-  { id: 's5', date: '2026-06-26', start_time: '10:00 AM', end_time: '10:30 AM', is_booked: false },
-  { id: 's6', date: '2026-06-26', start_time: '01:00 PM', end_time: '01:30 PM', is_booked: false }
+  { id: 's1', date: getFormattedDate(0), start_time: '10:00 AM', end_time: '10:30 AM', is_booked: true },
+  { id: 's2', date: getFormattedDate(0), start_time: '11:00 AM', end_time: '11:30 AM', is_booked: false },
+  { id: 's3', date: getFormattedDate(1), start_time: '02:00 PM', end_time: '02:30 PM', is_booked: true },
+  { id: 's4', date: getFormattedDate(1), start_time: '03:00 PM', end_time: '03:30 PM', is_booked: false },
+  { id: 's5', date: getFormattedDate(2), start_time: '10:00 AM', end_time: '10:30 AM', is_booked: false },
+  { id: 's6', date: getFormattedDate(2), start_time: '01:00 PM', end_time: '01:30 PM', is_booked: false }
+];
+
+export const MOCK_BOOKINGS = [
+  { id: 'b1', slot_id: 's1', customer_name: 'Arya Sharma', customer_email: 'arya@example.com', customer_phone: '+91-98765-43210', notes: 'Sleep Cycle Assessment', status: 'confirmed', created_at: new Date().toISOString() },
+  { id: 'b2', slot_id: 's3', customer_name: 'Rohan Mehta', customer_email: 'rohan@example.com', customer_phone: '+91-99999-88888', notes: 'Performance Supplements', status: 'confirmed', created_at: new Date().toISOString() }
 ];
 
 export const MOCK_COUPONS = [
@@ -443,17 +454,99 @@ export async function getBlogBySlug(slug: string) {
   return blogsList.find(b => b.slug === slug) || blogsList[0];
 }
 
+// Helper to load and save slots to localStorage
+let localSlots: any[] = [];
+
+export function getLocalSlots() {
+  if (localSlots.length > 0) return localSlots;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_slots');
+    if (stored) {
+      try {
+        localSlots = JSON.parse(stored);
+        return localSlots;
+      } catch (e) {
+        console.error("Failed to parse local storage slots", e);
+      }
+    }
+    localStorage.setItem('narva_slots', JSON.stringify(MOCK_SLOTS));
+  }
+  localSlots = [...MOCK_SLOTS];
+  return localSlots;
+}
+
+export function saveLocalSlots() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_slots', JSON.stringify(localSlots));
+  }
+}
+
+export async function addSlot(slot: any) {
+  const slots = getLocalSlots();
+  slots.push(slot);
+  saveLocalSlots();
+  return { success: true, data: slot };
+}
+
+export async function removeSlot(id: string) {
+  let slots = getLocalSlots();
+  slots = slots.filter(s => s.id !== id);
+  localSlots = slots;
+  saveLocalSlots();
+  return { success: true };
+}
+
+// Helper to load and save bookings to localStorage
+let localBookings: any[] = [];
+
+export function getLocalBookings() {
+  if (localBookings.length > 0) return localBookings;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('narva_bookings');
+    if (stored) {
+      try {
+        localBookings = JSON.parse(stored);
+        return localBookings;
+      } catch (e) {
+        console.error("Failed to parse local storage bookings", e);
+      }
+    }
+    localStorage.setItem('narva_bookings', JSON.stringify(MOCK_BOOKINGS));
+  }
+  localBookings = [...MOCK_BOOKINGS];
+  return localBookings;
+}
+
+export function saveLocalBookings() {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('narva_bookings', JSON.stringify(localBookings));
+  }
+}
+
+export async function getBookings() {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = createBrowserClient()
+      const { data, error } = await supabase.from('consultation_bookings').select('*')
+      if (!error && data) return data
+    } catch (e) {
+      console.warn(e)
+    }
+  }
+  return getLocalBookings();
+}
+
 export async function getSlots() {
   if (isSupabaseConfigured()) {
     try {
       const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('consultation_slots').select('*').eq('is_booked', false)
+      const { data, error } = await supabase.from('consultation_slots').select('*')
       if (!error && data && data.length > 0) return data
     } catch (e) {
       console.warn(e)
     }
   }
-  return MOCK_SLOTS;
+  return getLocalSlots();
 }
 
 export async function bookSlot(booking: { slotId: string; name: string; email: string; phone: string; notes: string; specialty: string }) {
@@ -480,10 +573,28 @@ export async function bookSlot(booking: { slotId: string; name: string; email: s
   }
 
   // Fallback locally
-  const slot = MOCK_SLOTS.find(s => s.id === booking.slotId);
+  const slots = getLocalSlots();
+  const slot = slots.find(s => s.id === booking.slotId);
   if (slot) {
     slot.is_booked = true;
+    saveLocalSlots();
   }
+
+  // Create new booking record
+  const bookings = getLocalBookings();
+  const newBooking = {
+    id: 'b_' + Date.now(),
+    slot_id: booking.slotId,
+    customer_name: booking.name,
+    customer_email: booking.email,
+    customer_phone: booking.phone,
+    notes: `${booking.specialty} - ${booking.notes}`,
+    status: 'confirmed',
+    created_at: new Date().toISOString()
+  };
+  bookings.push(newBooking);
+  saveLocalBookings();
+
   return { success: true, meetingLink: 'https://meet.google.com/abc-defg-hij' };
 }
 
