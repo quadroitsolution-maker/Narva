@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
       is_subscription_eligible: body.is_subscription_eligible ?? true,
       is_active: body.is_active ?? true,
       images: body.images || [],
-      ingredients: body.ingredients || []
+      ingredients: body.ingredients || [],
+      category: body.category || null
     }])
     .select()
     .single()

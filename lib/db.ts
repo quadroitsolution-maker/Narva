@@ -165,7 +165,8 @@ export async function getProductBySlug(slug: string) {
 
 export async function addProduct(product: {
   name: string; slug?: string; price: number; compare_price: number;
-  description: string; stock_qty: number; images: string[]
+  description: string; stock_qty: number; images: string[];
+  category?: string | null;
 }) {
   try {
     const res = await fetch('/api/products', {
@@ -552,4 +553,44 @@ export async function updateOrder(id: string, fields: any) {
     console.error('updateOrder error', e)
   }
   return { success: false, error: 'Failed to update order' }
+}
+
+// ─── Categories ────────────────────────────────────────────────────────────────
+
+export async function getCategories() {
+  try {
+    const res = await fetch('/api/categories')
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.warn('getCategories fallback', e)
+  }
+  return [
+    { id: 'cat1', name: 'Sleep Health', slug: 'sleep-health' },
+    { id: 'cat2', name: 'Science', slug: 'science' },
+    { id: 'cat3', name: 'Cognitive', slug: 'cognitive' }
+  ]
+}
+
+export async function addCategory(category: { name: string; slug?: string }) {
+  try {
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addCategory error', e)
+  }
+  return { success: false, error: 'Failed to add category' }
+}
+
+export async function removeCategory(id: string) {
+  try {
+    const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('removeCategory error', e)
+  }
+  return { success: false, error: 'Failed to remove category' }
 }

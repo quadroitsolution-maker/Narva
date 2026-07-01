@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, MOCK_SUBSCRIBERS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings, getCoupons, addCoupon, removeCoupon, getSubscribers, getOrders, updateOrder } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, MOCK_SUBSCRIBERS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings, getCoupons, addCoupon, removeCoupon, getSubscribers, getOrders, updateOrder, getCategories, addCategory, removeCategory } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ const MOCK_ORDERS_FULL = [
   { id: 'ord_4', customer: 'Priya Kapoor', email: 'priya@example.com', product: 'Sleep Gummies (Subscribe)', amount: 329, status: 'shipped', date: '2026-06-22', tracking: 'DL987654321IN', courier: 'Delhivery', address: '3 FC Road, Pune 411004' },
 ]
 
-type Panel = 'home' | 'orders' | 'products' | 'customers' | 'subscriptions' | 'coupons' | 'reviews' | 'blogs' | 'consultations' | 'subscribers' | 'activity'
+type Panel = 'home' | 'orders' | 'products' | 'categories' | 'customers' | 'subscriptions' | 'coupons' | 'reviews' | 'blogs' | 'consultations' | 'subscribers' | 'activity'
 
 // ─── Activity Icon Helper ─────────────────────────────────────────────────────
 function ActivityIcon({ type }: { type: string }) {
@@ -192,6 +192,7 @@ export default function AdminDashboard() {
   const [customers] = useState(MOCK_CUSTOMERS)
   const [subscribers, setSubscribers] = useState(MOCK_SUBSCRIBERS)
   const [bookings, setBookings] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
     async function loadAdminData() {
@@ -211,6 +212,8 @@ export default function AdminDashboard() {
       setSubscribers(allSubs);
       const allOrders = await getOrders();
       if (allOrders && allOrders.length > 0) setOrders(allOrders);
+      const allCats = await getCategories();
+      setCategories(allCats || []);
     }
     loadAdminData();
   }, [activePanel]);
@@ -221,9 +224,12 @@ export default function AdminDashboard() {
   const [trackingId, setTrackingId] = useState('')
   const [courierVal, setCourierVal] = useState('Blue Dart')
 
+  // Category panel
+  const [newCategoryName, setNewCategoryName] = useState('')
+
   // Product edit
   const [editingProduct, setEditingProduct] = useState<any>(null)
-  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '', images: [] as string[], new_url: '' })
+  const [editProductForm, setEditProductForm] = useState({ name: '', price: '', compare_price: '', stock_qty: '', images: [] as string[], new_url: '', category: '' })
 
   // Product create
   const [isAddingProduct, setIsAddingProduct] = useState(false)
@@ -235,7 +241,8 @@ export default function AdminDashboard() {
     stock_qty: '',
     description: '',
     images: [] as string[],
-    new_url: ''
+    new_url: '',
+    category: ''
   })
 
   // Blog edit
@@ -312,7 +319,8 @@ export default function AdminDashboard() {
       compare_price: String(p.compare_price || ''),
       stock_qty: String(p.stock_qty),
       images: p.images || [],
-      new_url: ''
+      new_url: '',
+      category: p.category || ''
     })
   }
 
@@ -323,7 +331,8 @@ export default function AdminDashboard() {
       price: parseFloat(editProductForm.price) || editingProduct.price,
       compare_price: parseFloat(editProductForm.compare_price) || editingProduct.compare_price,
       stock_qty: parseInt(editProductForm.stock_qty) || editingProduct.stock_qty,
-      images: editProductForm.images
+      images: editProductForm.images,
+      category: editProductForm.category || null
     });
     const allProds = await getProductsAdmin();
     setProducts(allProds);
@@ -340,7 +349,8 @@ export default function AdminDashboard() {
       compare_price: parseFloat(newProductForm.compare_price) || 399,
       description: newProductForm.description || 'Premium formulated health supplement.',
       stock_qty: parseInt(newProductForm.stock_qty) || 50,
-      images: newProductForm.images
+      images: newProductForm.images,
+      category: newProductForm.category || null
     })
     const allProds = await getProductsAdmin()
     setProducts(allProds)
@@ -353,7 +363,8 @@ export default function AdminDashboard() {
       stock_qty: '',
       description: '',
       images: [],
-      new_url: ''
+      new_url: '',
+      category: ''
     })
   }
 
@@ -488,6 +499,7 @@ export default function AdminDashboard() {
     { id: 'home', label: 'Analytics', icon: <BarChart2 size={15} /> },
     { id: 'orders', label: 'Orders', icon: <ShoppingBag size={15} />, badge: orders.filter(o => o.status === 'pending').length },
     { id: 'products', label: 'Products', icon: <Package size={15} /> },
+    { id: 'categories', label: 'Categories', icon: <Tag size={15} /> },
     { id: 'customers', label: 'Customers', icon: <Users size={15} /> },
     { id: 'subscriptions', label: 'Subscriptions', icon: <RefreshCw size={15} /> },
     { id: 'reviews', label: 'Reviews', icon: <Star size={15} />, badge: reviews.filter(r => r.status === 'pending').length },
@@ -901,6 +913,19 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                         <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Category</label>
+                          <select
+                            value={editProductForm.category}
+                            onChange={e => setEditProductForm(prev => ({ ...prev, category: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none text-matte-black/60 dark:text-dark-text/60"
+                          >
+                            <option value="">Select Category</option>
+                            {categories.map(c => (
+                              <option key={c.id} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Product Images</label>
                           <div className="grid grid-cols-1 gap-2">
                             <input
@@ -1094,6 +1119,19 @@ export default function AdminDashboard() {
                               </div>
                             )}
                           </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Category</label>
+                          <select
+                            value={newProductForm.category}
+                            onChange={e => setNewProductForm(prev => ({ ...prev, category: e.target.value }))}
+                            className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2 rounded-xl focus:outline-none text-matte-black/60 dark:text-dark-text/60"
+                          >
+                            <option value="">Select Category</option>
+                            {categories.map(c => (
+                              <option key={c.id} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Description</label>
@@ -1840,6 +1878,73 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── CATEGORIES ────────────────────────────────────────────────────── */}
+          {activePanel === 'categories' && (
+            <div className="space-y-6">
+              <h2 className="font-serif text-3xl font-light">Product Categories</h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Create Category form */}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newCategoryName.trim()) return;
+                    await addCategory({ name: newCategoryName.trim() });
+                    setNewCategoryName('');
+                    const allCats = await getCategories();
+                    setCategories(allCats || []);
+                  }}
+                  className="glass-panel p-6 rounded-2xl border border-premium-gold/10 space-y-4 h-fit"
+                >
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-premium-gold">Create Category</h3>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50">Category Name</label>
+                    <input
+                      required type="text" placeholder="e.g. Brain Health" value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs px-3 py-2.5 rounded-xl focus:outline-none"
+                    />
+                  </div>
+                  <button type="submit" className="w-full bg-premium-gold text-white text-[11px] font-bold py-2.5 rounded-xl hover:bg-premium-gold/90 transition-colors">
+                    Add Category
+                  </button>
+                </form>
+
+                {/* Categories List */}
+                <div className="lg:col-span-2 glass-panel rounded-2xl border border-premium-gold/10 overflow-hidden">
+                  <div className="grid grid-cols-4 gap-4 bg-warm-beige/30 dark:bg-dark-card/50 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-matte-black/50 dark:text-dark-text/50 border-b border-premium-gold/10">
+                    <span className="col-span-2">Category Name</span>
+                    <span>Slug</span>
+                    <span>Action</span>
+                  </div>
+                  <div className="divide-y divide-premium-gold/8 max-h-[60vh] overflow-y-auto">
+                    {categories.length === 0 ? (
+                      <p className="p-5 text-xs text-matte-black/40 text-center">No categories created yet.</p>
+                    ) : (
+                      categories.map(c => (
+                        <div key={c.id || c.slug} className="grid grid-cols-4 gap-4 px-5 py-3.5 items-center text-xs">
+                          <span className="col-span-2 font-medium">{c.name}</span>
+                          <span className="font-mono text-[10px] text-matte-black/40">{c.slug}</span>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await removeCategory(c.id);
+                              const allCats = await getCategories();
+                              setCategories(allCats || []);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline"
+                          >
+                            <Trash2 size={11} /> Delete
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
