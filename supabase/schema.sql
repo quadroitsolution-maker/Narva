@@ -1,8 +1,12 @@
+-- ============================================================
+-- Narva Health — Supabase Schema (Full)
+-- Run this in Supabase SQL Editor to set up all tables & RLS
+-- ============================================================
+
 -- Enable uuid-ossp extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Define Enums/Types if necessary or use TEXT constraints
--- products table
+-- ─── products ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug TEXT UNIQUE NOT NULL,
@@ -15,14 +19,15 @@ CREATE TABLE IF NOT EXISTS public.products (
     is_subscription_eligible BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     images TEXT[] NOT NULL DEFAULT '{}',
+    ingredients JSONB DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- customers table (linked to auth.users if available, but fully queryable)
+-- ─── customers ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.customers (
-    id UUID PRIMARY KEY, -- references auth.users(id)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     phone TEXT,
@@ -35,10 +40,10 @@ CREATE TABLE IF NOT EXISTS public.customers (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- addresses table
+-- ─── addresses ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.addresses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID REFERENCES public.customers(id) ON DELETE CASCADE,
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
     line1 TEXT NOT NULL,
     line2 TEXT,
     city TEXT NOT NULL,
@@ -50,18 +55,21 @@ CREATE TABLE IF NOT EXISTS public.addresses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- orders table
+-- ─── orders ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID REFERENCES public.customers(id),
-    status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'refunded', 'cancelled')),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    customer_name TEXT,
+    customer_email TEXT,
+    customer_phone TEXT,
+    status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'refunded', 'cancelled')),
     payment_id TEXT,
     payment_method TEXT,
     subtotal NUMERIC(10, 2) NOT NULL CHECK (subtotal >= 0),
     discount NUMERIC(10, 2) DEFAULT 0.00 CHECK (discount >= 0),
     shipping NUMERIC(10, 2) DEFAULT 0.00 CHECK (shipping >= 0),
     total NUMERIC(10, 2) NOT NULL CHECK (total >= 0),
-    shipping_address_id UUID REFERENCES public.addresses(id),
+    shipping_address_id UUID REFERENCES public.addresses(id) ON DELETE SET NULL,
     tracking_number TEXT,
     courier TEXT,
     notes TEXT,
@@ -70,7 +78,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- order_items table
+-- ─── order_items ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.order_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
@@ -81,14 +89,14 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- subscriptions table
+-- ─── subscriptions ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_id UUID REFERENCES public.customers(id) NOT NULL,
     product_id UUID REFERENCES public.products(id) NOT NULL,
     razorpay_subscription_id TEXT UNIQUE,
     plan_id TEXT,
-    status TEXT NOT NULL CHECK (status IN ('created', 'authenticated', 'active', 'pending', 'halted', 'cancelled')),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('created', 'authenticated', 'active', 'pending', 'halted', 'cancelled')),
     current_cycle INTEGER DEFAULT 1 CHECK (current_cycle >= 1),
     next_charge_at TIMESTAMP WITH TIME ZONE,
     quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
@@ -98,24 +106,27 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
--- reviews table
+-- ─── reviews ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.reviews (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
-    customer_id UUID REFERENCES public.customers(id),
-    order_id UUID REFERENCES public.orders(id),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    customer_name TEXT,
+    city TEXT DEFAULT 'India',
+    order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     title TEXT,
     body TEXT NOT NULL,
     is_verified_purchase BOOLEAN DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    video_url TEXT,
     admin_reply TEXT,
     reply_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- coupons table
+-- ─── coupons ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.coupons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code TEXT UNIQUE NOT NULL,
@@ -126,33 +137,35 @@ CREATE TABLE IF NOT EXISTS public.coupons (
     usage_limit INTEGER,
     used_count INTEGER DEFAULT 0 CHECK (used_count >= 0),
     is_first_order_only BOOLEAN DEFAULT FALSE,
-    valid_from TIMESTAMP WITH TIME ZONE NOT NULL,
-    valid_until TIMESTAMP WITH TIME ZONE NOT NULL,
+    valid_from TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc'::text, now()),
+    valid_until TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (timezone('utc'::text, now()) + INTERVAL '30 days'),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- blog_posts table
+-- ─── blog_posts ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.blog_posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug TEXT UNIQUE NOT NULL,
     title TEXT NOT NULL,
     excerpt TEXT,
-    body JSONB NOT NULL, -- tip tap JSON
+    body JSONB NOT NULL DEFAULT '{}',
     cover_image_url TEXT,
-    author_name TEXT NOT NULL,
+    author_name TEXT NOT NULL DEFAULT 'Narva Health',
     author_image_url TEXT,
+    category TEXT DEFAULT 'Sleep Health',
+    read_time TEXT DEFAULT '5 min read',
     seo_title TEXT,
     seo_description TEXT,
     schema_type TEXT DEFAULT 'Article',
-    published_at TIMESTAMP WITH TIME ZONE,
-    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'published')),
+    published_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'scheduled', 'published')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- consultation_slots table
+-- ─── consultation_slots ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.consultation_slots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     date DATE NOT NULL,
@@ -163,7 +176,7 @@ CREATE TABLE IF NOT EXISTS public.consultation_slots (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- consultation_bookings table
+-- ─── consultation_bookings ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.consultation_bookings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slot_id UUID REFERENCES public.consultation_slots(id) NOT NULL,
@@ -171,12 +184,21 @@ CREATE TABLE IF NOT EXISTS public.consultation_bookings (
     customer_email TEXT NOT NULL,
     customer_phone TEXT NOT NULL,
     notes TEXT,
-    status TEXT NOT NULL CHECK (status IN ('confirmed', 'completed', 'cancelled', 'no_show')),
+    status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'completed', 'cancelled', 'no_show')),
     meeting_link TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- inventory_log table
+-- ─── subscribers ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.subscribers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT UNIQUE NOT NULL,
+    name TEXT,
+    source TEXT DEFAULT 'Website',
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ─── inventory_log ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.inventory_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
@@ -188,7 +210,9 @@ CREATE TABLE IF NOT EXISTS public.inventory_log (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Row Level Security (RLS) configurations
+-- ============================================================
+-- Row Level Security
+-- ============================================================
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
@@ -201,60 +225,58 @@ ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consultation_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consultation_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 
--- Define RLS Policies
--- Products: read is public, edit is admin
-CREATE POLICY "Allow public read-only access to products" ON public.products
+-- ─── RLS Policies ────────────────────────────────────────────
+
+-- Products: public read, service role writes
+CREATE POLICY "products_public_read" ON public.products
     FOR SELECT USING (is_active = TRUE AND deleted_at IS NULL);
 
--- Customers: read/write for self, admin sees all
-CREATE POLICY "Allow users to access their own customer profile" ON public.customers
-    FOR ALL USING (auth.uid() = id);
-
--- Addresses: read/write for self
-CREATE POLICY "Allow users to access their own addresses" ON public.addresses
-    FOR ALL USING (customer_id = auth.uid());
-
--- Orders: read for self, write for checkout
-CREATE POLICY "Allow users to view their own orders" ON public.orders
-    FOR SELECT USING (customer_id = auth.uid());
-CREATE POLICY "Allow users to create their own orders" ON public.orders
-    FOR INSERT WITH CHECK (customer_id = auth.uid());
-
--- Order Items: read for self
-CREATE POLICY "Allow users to view their own order items" ON public.order_items
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.orders 
-            WHERE public.orders.id = public.order_items.order_id 
-            AND public.orders.customer_id = auth.uid()
-        )
-    );
-
--- Subscriptions: read for self
-CREATE POLICY "Allow users to view their own subscriptions" ON public.subscriptions
-    FOR SELECT USING (customer_id = auth.uid());
-
--- Reviews: read is public, create is authenticated
-CREATE POLICY "Allow public to read approved reviews" ON public.reviews
+-- Reviews: public read approved, service role writes
+CREATE POLICY "reviews_public_read" ON public.reviews
     FOR SELECT USING (status = 'approved');
-CREATE POLICY "Allow authenticated users to create reviews" ON public.reviews
-    FOR INSERT WITH CHECK (auth.uid() = customer_id);
 
--- Coupons: read is authenticated (validation check)
-CREATE POLICY "Allow users to view active coupons" ON public.coupons
+-- Blog posts: public read published
+CREATE POLICY "blog_posts_public_read" ON public.blog_posts
+    FOR SELECT USING (status = 'published');
+
+-- Coupons: public read active
+CREATE POLICY "coupons_public_read" ON public.coupons
     FOR SELECT USING (is_active = TRUE AND valid_until > now());
 
--- Blog Posts: read is public for published
-CREATE POLICY "Allow public to read published blog posts" ON public.blog_posts
-    FOR SELECT USING (status = 'published' AND published_at <= now());
-
--- Consultation Slots: read is public for active slots
-CREATE POLICY "Allow public to read consultation slots" ON public.consultation_slots
+-- Consultation Slots: public read
+CREATE POLICY "slots_public_read" ON public.consultation_slots
     FOR SELECT USING (TRUE);
 
--- Consultation Bookings: read for self
-CREATE POLICY "Allow users to view their bookings" ON public.consultation_bookings
-    FOR SELECT USING (customer_email = (SELECT email FROM public.customers WHERE id = auth.uid()));
-CREATE POLICY "Allow public to create consultation bookings" ON public.consultation_bookings
+-- Consultation Bookings: public insert (checked by service role), read requires auth
+CREATE POLICY "bookings_public_insert" ON public.consultation_bookings
     FOR INSERT WITH CHECK (TRUE);
+
+-- Subscribers: service role only (no public read/write)
+-- (all subscriber ops go through service-role API routes)
+
+-- Customers: self only
+CREATE POLICY "customers_self" ON public.customers
+    FOR ALL USING (auth.uid() = id);
+
+-- Addresses: self only
+CREATE POLICY "addresses_self" ON public.addresses
+    FOR ALL USING (customer_id = auth.uid());
+
+-- Orders: self read
+CREATE POLICY "orders_self_read" ON public.orders
+    FOR SELECT USING (customer_id = auth.uid());
+
+-- ============================================================
+-- Stock Decrement Helper Function
+-- ============================================================
+CREATE OR REPLACE FUNCTION decrement_stock(p_product_id UUID, p_quantity INTEGER)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.products
+  SET stock_qty = GREATEST(0, stock_qty - p_quantity),
+      updated_at = timezone('utc'::text, now())
+  WHERE id = p_product_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

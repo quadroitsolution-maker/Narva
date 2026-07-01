@@ -24,7 +24,7 @@ export default function BlogArticle() {
       setBlog(data)
 
       const allBlogs = await getBlogs()
-      const filtered = allBlogs.filter(b => b.slug !== slug && b.category === data?.category).slice(0, 2)
+      const filtered = allBlogs.filter((b: any) => b.slug !== slug && b.category === data?.category).slice(0, 2)
       setRelated(filtered)
     }
     loadBlogData()

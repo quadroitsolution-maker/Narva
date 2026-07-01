@@ -14,7 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
 } from 'recharts'
-import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, MOCK_SUBSCRIBERS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings, getCoupons, addCoupon, removeCoupon, getSubscribers } from '@/lib/db'
+import { MOCK_PRODUCTS, MOCK_REVIEWS, MOCK_BLOGS, MOCK_SLOTS, MOCK_COUPONS, MOCK_SUBSCRIBERS, getReviewsAdmin, updateReviewStatus, getProductsAdmin, addProduct, removeProduct, updateProduct, getBlogs, addBlog, removeBlog, updateBlog, getSlots, addSlot, removeSlot, getBookings, getCoupons, addCoupon, removeCoupon, getSubscribers, getOrders, updateOrder } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false)
   const [activePanel, setActivePanel] = useState<Panel>('home')
 
-  const [orders, setOrders] = useState(MOCK_ORDERS_FULL)
+  const [orders, setOrders] = useState<any[]>([])
   const [products, setProducts] = useState(MOCK_PRODUCTS)
   const [reviews, setReviews] = useState<any[]>([])
   const [blogs, setBlogs] = useState(MOCK_BLOGS)
@@ -209,6 +209,8 @@ export default function AdminDashboard() {
       setCoupons(allCoupons);
       const allSubs = await getSubscribers();
       setSubscribers(allSubs);
+      const allOrders = await getOrders();
+      if (allOrders && allOrders.length > 0) setOrders(allOrders);
     }
     loadAdminData();
   }, [activePanel]);
@@ -282,9 +284,10 @@ export default function AdminDashboard() {
   const [subSearch, setSubSearch] = useState('')
 
   // Handlers
-  const updateOrderStatus = (id: string, status: string) => {
+  const updateOrderStatus = async (id: string, status: string) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
     setSelectedOrder((prev: any) => prev?.id === id ? { ...prev, status } : prev)
+    await updateOrder(id, { status })
   }
 
   const handleReviewStatus = async (reviewId: string, status: 'approved' | 'rejected') => {
@@ -293,9 +296,10 @@ export default function AdminDashboard() {
     setReviews(allRevs);
   }
 
-  const addTracking = () => {
+  const addTracking = async () => {
     if (!selectedOrder) return
-    setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, tracking: trackingId, courier: courierVal, status: 'shipped' } : o))
+    setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, tracking_number: trackingId, courier: courierVal, status: 'shipped' } : o))
+    await updateOrder(selectedOrder.id, { tracking_number: trackingId, courier: courierVal, status: 'shipped' })
     setSelectedOrder(null)
     setTrackingId('')
   }
@@ -472,7 +476,7 @@ export default function AdminDashboard() {
   }
 
   const exportSubscribersCsv = () => {
-    const csv = ['Email,Name,Joined,Source', ...subscribers.map(s => `${s.email},${s.name},${s.joined},${s.source}`)].join('\n')
+    const csv = ['Email,Name,Joined,Source', ...subscribers.map((s: any) => `${s.email},${s.name || ''},${s.joined_at || s.joined || ''},${s.source || ''}`)].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = 'narva_subscribers.csv'; a.click()
@@ -748,13 +752,13 @@ export default function AdminDashboard() {
 
                       <div className="space-y-2 text-xs border border-premium-gold/10 rounded-xl p-4 bg-warm-beige/20 dark:bg-dark-card/30">
                         {[
-                          ['Customer', `${selectedOrder.customer} (${selectedOrder.email})`],
-                          ['Product', selectedOrder.product],
-                          ['Amount', `₹${selectedOrder.amount}`],
-                          ['Date', selectedOrder.date],
-                          ['Address', selectedOrder.address],
+                          ['Customer', `${selectedOrder.customer_name || selectedOrder.customer || '—'} (${selectedOrder.customer_email || selectedOrder.email || '—'})`],
+                          ['Product', selectedOrder.product || (selectedOrder.order_items?.[0]?.products?.name) || '—'],
+                          ['Amount', `₹${selectedOrder.total || selectedOrder.amount || 0}`],
+                          ['Date', selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('en-IN') : selectedOrder.date || '—'],
+                          ['Address', selectedOrder.addresses ? `${selectedOrder.addresses.line1}, ${selectedOrder.addresses.city}` : selectedOrder.address || '—'],
                           ['Status', <StatusBadge key="s" status={selectedOrder.status} />],
-                          selectedOrder.tracking ? ['Tracking', selectedOrder.tracking] : null,
+                          (selectedOrder.tracking_number || selectedOrder.tracking) ? ['Tracking', selectedOrder.tracking_number || selectedOrder.tracking] : null,
                         ].filter(Boolean).map(([label, val]: any) => (
                           <div key={label} className="flex gap-2">
                             <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">{label}</span>

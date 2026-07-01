@@ -1,6 +1,7 @@
 import { createClient as createBrowserClient } from './supabase/client'
 
-// Fallback mock data matching seed.sql
+// ─── Static fallback seed data (used when Supabase is unavailable in local dev) ───
+
 export const MOCK_PRODUCTS = [
   {
     id: '88888888-8888-8888-8888-888888888888',
@@ -21,36 +22,8 @@ export const MOCK_PRODUCTS = [
       { name: 'Chamomile Extract', desc: 'Soothes the nervous system for gentle rest.' }
     ]
   }
-];
+]
 
-// Helper to load and save products to localStorage
-let localProducts: any[] = [];
-
-function getLocalProducts() {
-  if (localProducts.length > 0) return localProducts;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_products');
-    if (stored) {
-      try {
-        localProducts = JSON.parse(stored);
-        return localProducts;
-      } catch (e) {
-        console.error("Failed to parse local storage products", e);
-      }
-    }
-    localStorage.setItem('narva_products', JSON.stringify(MOCK_PRODUCTS));
-  }
-  localProducts = [...MOCK_PRODUCTS];
-  return localProducts;
-}
-
-function saveLocalProducts() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_products', JSON.stringify(localProducts));
-  }
-}
-
-// Seed mock reviews with status and optional video_url
 export const MOCK_REVIEWS = [
   {
     id: 'v1',
@@ -81,91 +54,20 @@ export const MOCK_REVIEWS = [
     admin_reply: null
   },
   {
-    id: 'v3',
-    product_id: '88888888-8888-8888-8888-888888888888',
-    customer_name: 'Dr. Kabir Sen',
-    city: 'Delhi',
-    rating: 5,
-    title: 'Highly recommended clinically',
-    body: 'Excellent non-habit-forming formulation. Great response from my patients.',
-    is_verified_purchase: true,
-    created_at: '2026-06-23T14:15:00Z',
-    status: 'approved',
-    video_url: 'https://assets.mixkit.co/videos/preview/mixkit-putting-on-a-sleep-mask-in-bed-42475-large.mp4',
-    admin_reply: null
-  },
-  {
     id: '1',
     product_id: '88888888-8888-8888-8888-888888888888',
     customer_name: 'Arya Sharma',
     city: 'Mumbai',
     rating: 5,
     title: 'Absolutely life-changing!',
-    body: 'As an early-stage startup founder, my sleep schedule was completely wrecked. Taking one Narva gummy 30 mins before bed has helped me fall asleep consistently. Highly recommend to anyone struggling with stress.',
+    body: 'As an early-stage startup founder, my sleep schedule was completely wrecked. Taking one Narva gummy 30 mins before bed has helped me fall asleep consistently.',
     is_verified_purchase: true,
     created_at: '2026-06-23T12:00:00Z',
     status: 'approved',
     video_url: '',
     admin_reply: 'Thanks for the kind words, Arya! Glad to know Narva helps you stay rested during your grind.'
-  },
-  {
-    id: '2',
-    product_id: '88888888-8888-8888-8888-888888888888',
-    customer_name: 'Dr. Kabir Sen',
-    city: 'Delhi',
-    rating: 5,
-    title: 'No morning grogginess',
-    body: 'I have tried other melatonin pills before and they always made me feel like a zombie in the morning. Narvas formula with L-theanine and magnesium is incredibly clean. Feel totally refreshed at 6 AM.',
-    is_verified_purchase: true,
-    created_at: '2026-06-22T09:15:00Z',
-    status: 'approved',
-    video_url: '',
-    admin_reply: null
-  },
-  {
-    id: '3',
-    product_id: '88888888-8888-8888-8888-888888888888',
-    customer_name: 'Rohan Mehta',
-    city: 'Bangalore',
-    rating: 4,
-    title: 'Great taste and works well',
-    body: 'Tastes like real berries, and works within 25 minutes. Docked 1 star because shipping took 4 days to Bangalore, but the product itself is top-tier.',
-    is_verified_purchase: true,
-    created_at: '2026-06-20T16:30:00Z',
-    status: 'approved',
-    video_url: '',
-    admin_reply: null
   }
-];
-
-// Helper to load and save client-side reviews to localStorage
-let localReviews: any[] = [];
-
-function getLocalReviews() {
-  if (localReviews.length > 0) return localReviews;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_reviews');
-    if (stored) {
-      try {
-        localReviews = JSON.parse(stored);
-        return localReviews;
-      } catch (e) {
-        console.error("Failed to parse local storage reviews", e);
-      }
-    }
-    // Set initial mock data in localStorage
-    localStorage.setItem('narva_reviews', JSON.stringify(MOCK_REVIEWS));
-  }
-  localReviews = [...MOCK_REVIEWS];
-  return localReviews;
-}
-
-function saveLocalReviews() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_reviews', JSON.stringify(localReviews));
-  }
-}
-
+]
 
 export const MOCK_BLOGS = [
   {
@@ -179,7 +81,7 @@ export const MOCK_BLOGS = [
     published_at: '2026-06-23T08:00:00Z',
     category: 'Sleep Health',
     read_time: '5 min read',
-    body: `<h2>Understanding Your Internal Clock</h2><p>Your circadian rhythm is your body's natural 24-hour internal clock that cycles between sleepiness and alertness. Resetting this clock requires consistent environmental triggers, the most powerful of which is morning sunlight.</p><h3>Key Steps to Reset:</h3><ul><li><strong>Morning Sun:</strong> View 10-15 minutes of bright morning light within 1 hour of waking.</li><li><strong>Consistent Wake Times:</strong> Go to bed and wake up at the exact same time every day, even on weekends.</li><li><strong>Dim the Screen:</strong> Turn off bright screens 1-2 hours before bed or wear blue-light blocking glasses.</li></ul>`
+    body: '<h2>Understanding Your Internal Clock</h2><p>Your circadian rhythm is your body\'s natural 24-hour internal clock.</p>'
   },
   {
     id: 'b2',
@@ -192,532 +94,461 @@ export const MOCK_BLOGS = [
     published_at: '2026-06-21T10:00:00Z',
     category: 'Science',
     read_time: '4 min read',
-    body: `<h2>The Pineal Gland & Screen Light</h2><p>Our screens emit high-energy visible blue light that closely mimics daylight. When this light hits the melanopsin receptors in our eyes, it sends signals to the suprachiasmatic nucleus (SCN) to halt melatonin production, telling your body it's daytime.</p><h3>Why it Matters:</h3><p>Suppressed melatonin delays your sleep cycle by up to 2 hours, resulting in shallower REM cycles and poor morning recovery. Minimizing screen time at night is not a wellness trend—it is a physiological necessity for restorative sleep.</p>`
+    body: '<h2>The Pineal Gland & Screen Light</h2><p>Our screens emit high-energy visible blue light that closely mimics daylight.</p>'
   }
-];
+]
 
 const getFormattedDate = (daysAhead: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  return d.toISOString().split('T')[0]; // returns YYYY-MM-DD
-};
+  const d = new Date()
+  d.setDate(d.getDate() + daysAhead)
+  return d.toISOString().split('T')[0]
+}
 
 export const MOCK_SLOTS = [
   { id: 's1', date: getFormattedDate(0), start_time: '10:00 AM', end_time: '10:30 AM', is_booked: true },
   { id: 's2', date: getFormattedDate(0), start_time: '11:00 AM', end_time: '11:30 AM', is_booked: false },
-  { id: 's3', date: getFormattedDate(1), start_time: '02:00 PM', end_time: '02:30 PM', is_booked: true },
-  { id: 's4', date: getFormattedDate(1), start_time: '03:00 PM', end_time: '03:30 PM', is_booked: false },
-  { id: 's5', date: getFormattedDate(2), start_time: '10:00 AM', end_time: '10:30 AM', is_booked: false },
-  { id: 's6', date: getFormattedDate(2), start_time: '01:00 PM', end_time: '01:30 PM', is_booked: false }
-];
-
-export const MOCK_BOOKINGS = [
-  { id: 'b1', slot_id: 's1', customer_name: 'Arya Sharma', customer_email: 'arya@example.com', customer_phone: '+91-98765-43210', notes: 'Sleep Cycle Assessment', status: 'confirmed', created_at: new Date().toISOString() },
-  { id: 'b2', slot_id: 's3', customer_name: 'Rohan Mehta', customer_email: 'rohan@example.com', customer_phone: '+91-99999-88888', notes: 'Performance Supplements', status: 'confirmed', created_at: new Date().toISOString() }
-];
+  { id: 's3', date: getFormattedDate(1), start_time: '02:00 PM', end_time: '02:30 PM', is_booked: false },
+  { id: 's4', date: getFormattedDate(2), start_time: '10:00 AM', end_time: '10:30 AM', is_booked: false }
+]
 
 export const MOCK_COUPONS = [
-  { code: 'WELCOME10', type: 'pct', value: 10, min_order_value: 299, max_discount: 100 },
-  { code: 'FREESHIP', type: 'free_shipping', value: 40, min_order_value: 350, max_discount: 40 }
-];
+  { code: 'WELCOME10', type: 'pct', value: 10, min_order_value: 299, max_discount: 100, is_active: true },
+  { code: 'FREESHIP', type: 'free_shipping', value: 40, min_order_value: 350, max_discount: 40, is_active: true }
+]
 
-// Helper to determine if we have a real Supabase configuration
-const isSupabaseConfigured = () => {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://mock-supabase-url.supabase.co' &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-};
+export const MOCK_SUBSCRIBERS = [
+  { id: 'sub1', email: 'arya@example.com', name: 'Arya Sharma', joined_at: '2026-06-24', source: 'Homepage CTA' },
+  { id: 'sub2', email: 'priya.k@gmail.com', name: 'Priya K.', joined_at: '2026-06-22', source: 'Footer' }
+]
+
+// ─── Products ──────────────────────────────────────────────────────────────────
 
 export async function getProducts() {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('products').select('*').eq('is_active', true)
-      if (!error && data && data.length > 0) return data
-    } catch (e) {
-      console.warn("Supabase fetch products error, using mock data", e)
-    }
+  try {
+    const supabase = createBrowserClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .is('deleted_at', null)
+    if (!error && data && data.length > 0) return data
+  } catch (e) {
+    console.warn('getProducts fallback', e)
   }
-  return getLocalProducts().filter(p => p.is_active);
+  return MOCK_PRODUCTS.filter(p => p.is_active)
 }
 
 export async function getProductsAdmin() {
-  return getLocalProducts();
-}
-
-export async function addProduct(product: { name: string; slug?: string; price: number; compare_price: number; description: string; stock_qty: number; images: string[] }) {
-  const prods = getLocalProducts();
-  const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const newProd = {
-    id: 'prod_' + Date.now(),
-    slug,
-    name: product.name,
-    description: product.description,
-    price: product.price,
-    compare_price: product.compare_price,
-    stock_qty: product.stock_qty,
-    low_stock_threshold: 10,
-    is_subscription_eligible: true,
-    is_active: true,
-    images: product.images.length > 0 && product.images[0] ? product.images : ['https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?q=80&w=600&auto=format&fit=crop'],
-    ingredients: []
-  };
-  prods.push(newProd);
-  saveLocalProducts();
-  return { success: true, data: newProd };
-}
-
-export async function removeProduct(id: string) {
-  const prods = getLocalProducts();
-  const idx = prods.findIndex(p => p.id === id);
-  if (idx !== -1) {
-    prods.splice(idx, 1);
-    saveLocalProducts();
-    return { success: true };
+  try {
+    const res = await fetch('/api/products')
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.warn('getProductsAdmin fallback', e)
   }
-  return { success: false, error: 'Product not found' };
-}
-
-export async function updateProduct(id: string, fields: any) {
-  const prods = getLocalProducts();
-  const prod = prods.find(p => p.id === id);
-  if (prod) {
-    Object.assign(prod, fields);
-    saveLocalProducts();
-    return { success: true, data: prod };
-  }
-  return { success: false, error: 'Product not found' };
+  return MOCK_PRODUCTS
 }
 
 export async function getProductBySlug(slug: string) {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('products').select('*').eq('slug', slug).single()
-      if (!error && data) return data
-    } catch (e) {
-      console.warn("Supabase fetch product by slug error, using mock data", e)
-    }
+  try {
+    const supabase = createBrowserClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('slug', slug)
+      .single()
+    if (!error && data) return data
+  } catch (e) {
+    console.warn('getProductBySlug fallback', e)
   }
-  return getLocalProducts().find(p => p.slug === slug) || getLocalProducts()[0];
+  return MOCK_PRODUCTS.find(p => p.slug === slug) || MOCK_PRODUCTS[0]
 }
 
-export async function getReviews(productId: string) {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('status', 'approved')
-      if (!error && data) return data
-    } catch (e) {
-      console.warn("Supabase fetch reviews error, using mock data", e)
-    }
+export async function addProduct(product: {
+  name: string; slug?: string; price: number; compare_price: number;
+  description: string; stock_qty: number; images: string[]
+}) {
+  try {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(product)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addProduct error', e)
   }
-  return getLocalReviews().filter(r => r.product_id === productId && r.status === 'approved');
+  return { success: false, error: 'Failed to add product' }
+}
+
+export async function removeProduct(id: string) {
+  try {
+    const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('removeProduct error', e)
+  }
+  return { success: false, error: 'Failed to remove product' }
+}
+
+export async function updateProduct(id: string, fields: any) {
+  try {
+    const res = await fetch('/api/products', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...fields })
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('updateProduct error', e)
+  }
+  return { success: false, error: 'Failed to update product' }
+}
+
+// ─── Reviews ───────────────────────────────────────────────────────────────────
+
+export async function getReviews(productId: string) {
+  try {
+    const res = await fetch(`/api/reviews?product_id=${productId}`)
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.length > 0) return data
+    }
+  } catch (e) {
+    console.warn('getReviews fallback', e)
+  }
+  return MOCK_REVIEWS.filter(r => r.product_id === productId && r.status === 'approved')
 }
 
 export async function getReviewsAdmin() {
-  return getLocalReviews();
+  try {
+    const res = await fetch('/api/reviews?admin=true')
+    if (res.ok) {
+      const data = await res.json()
+      if (data) return data
+    }
+  } catch (e) {
+    console.warn('getReviewsAdmin fallback', e)
+  }
+  return MOCK_REVIEWS
+}
+
+export async function addReview(review: {
+  product_id: string; customer_name: string; rating: number;
+  title: string; body: string; city: string; video_url?: string
+}) {
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(review)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addReview error', e)
+  }
+  return { success: false, error: 'Failed to add review' }
 }
 
 export async function updateReviewStatus(reviewId: string, status: 'approved' | 'rejected') {
-  const revs = getLocalReviews();
-  const rev = revs.find(r => r.id === reviewId);
-  if (rev) {
-    rev.status = status;
-    saveLocalReviews();
-    return { success: true, data: rev };
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: reviewId, status })
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('updateReviewStatus error', e)
   }
-  return { success: false, error: 'Review not found' };
+  return { success: false, error: 'Failed to update review status' }
 }
 
-export async function addReview(review: { product_id: string; customer_name: string; rating: number; title: string; body: string; city: string; video_url?: string }) {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('reviews').insert([{
-        product_id: review.product_id,
-        rating: review.rating,
-        title: review.title,
-        body: review.body,
-        status: 'pending', // Pending admin approval by default
-        is_verified_purchase: true,
-        video_url: review.video_url || ''
-      }])
-      if (!error) return { success: true, data }
-    } catch (e) {
-      console.error(e)
-    }
-  }
-  
-  const revs = getLocalReviews();
-  const newReview = {
-    id: 'rev_' + Date.now(),
-    product_id: review.product_id,
-    customer_name: review.customer_name,
-    city: review.city || 'India',
-    rating: review.rating,
-    title: review.title,
-    body: review.body,
-    is_verified_purchase: true,
-    created_at: new Date().toISOString(),
-    status: 'pending', // Starts as pending for admin approval!
-    video_url: review.video_url || '',
-    admin_reply: null
-  };
-  revs.unshift(newReview);
-  saveLocalReviews();
-  return { success: true, data: newReview };
-}
-
-// Helper to load and save blogs to localStorage
-let localBlogs: any[] = [];
-
-export function getLocalBlogs() {
-  if (localBlogs.length > 0) return localBlogs;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_blogs');
-    if (stored) {
-      try {
-        localBlogs = JSON.parse(stored);
-        return localBlogs;
-      } catch (e) {
-        console.error("Failed to parse local storage blogs", e);
-      }
-    }
-    localStorage.setItem('narva_blogs', JSON.stringify(MOCK_BLOGS));
-  }
-  localBlogs = [...MOCK_BLOGS];
-  return localBlogs;
-}
-
-export function saveLocalBlogs() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_blogs', JSON.stringify(localBlogs));
-  }
-}
-
-export async function addBlog(blog: any) {
-  const blogs = getLocalBlogs();
-  blogs.unshift(blog);
-  saveLocalBlogs();
-  return { success: true, data: blog };
-}
-
-export async function removeBlog(id: string) {
-  let blogs = getLocalBlogs();
-  blogs = blogs.filter(b => b.id !== id);
-  localBlogs = blogs;
-  saveLocalBlogs();
-  return { success: true };
-}
-
-export async function updateBlog(id: string, fields: any) {
-  const blogs = getLocalBlogs();
-  const index = blogs.findIndex(b => b.id === id);
-  if (index !== -1) {
-    blogs[index] = { ...blogs[index], ...fields };
-    saveLocalBlogs();
-  }
-  return { success: true };
-}
+// ─── Blogs ─────────────────────────────────────────────────────────────────────
 
 export async function getBlogs() {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('blog_posts').select('*').eq('status', 'published')
-      if (!error && data && data.length > 0) return data
-    } catch (e) {
-      console.warn(e)
+  try {
+    const res = await fetch('/api/blogs')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.length > 0) return data
     }
+  } catch (e) {
+    console.warn('getBlogs fallback', e)
   }
-  return getLocalBlogs();
+  return MOCK_BLOGS
 }
 
 export async function getBlogBySlug(slug: string) {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).single()
-      if (!error && data) return data
-    } catch (e) {
-      console.warn(e)
+  try {
+    const res = await fetch(`/api/blogs?slug=${slug}`)
+    if (res.ok) {
+      const data = await res.json()
+      if (data && !data.error) return data
     }
+  } catch (e) {
+    console.warn('getBlogBySlug fallback', e)
   }
-  const blogsList = getLocalBlogs();
-  return blogsList.find(b => b.slug === slug) || blogsList[0];
+  return MOCK_BLOGS.find(b => b.slug === slug) || MOCK_BLOGS[0]
 }
 
-// Helper to load and save slots to localStorage
-let localSlots: any[] = [];
-
-export function getLocalSlots() {
-  if (localSlots.length > 0) return localSlots;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_slots');
-    if (stored) {
-      try {
-        localSlots = JSON.parse(stored);
-        return localSlots;
-      } catch (e) {
-        console.error("Failed to parse local storage slots", e);
-      }
-    }
-    localStorage.setItem('narva_slots', JSON.stringify(MOCK_SLOTS));
+export async function addBlog(blog: any) {
+  try {
+    const res = await fetch('/api/blogs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(blog)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addBlog error', e)
   }
-  localSlots = [...MOCK_SLOTS];
-  return localSlots;
+  return { success: false, error: 'Failed to add blog' }
 }
 
-export function saveLocalSlots() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_slots', JSON.stringify(localSlots));
+export async function removeBlog(id: string) {
+  try {
+    const res = await fetch(`/api/blogs?id=${id}`, { method: 'DELETE' })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('removeBlog error', e)
   }
+  return { success: false, error: 'Failed to remove blog' }
+}
+
+export async function updateBlog(id: string, fields: any) {
+  try {
+    const res = await fetch('/api/blogs', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...fields })
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('updateBlog error', e)
+  }
+  return { success: false, error: 'Failed to update blog' }
+}
+
+// ─── Consultation Slots ────────────────────────────────────────────────────────
+
+export async function getSlots() {
+  try {
+    const res = await fetch('/api/slots')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.length > 0) return data
+    }
+  } catch (e) {
+    console.warn('getSlots fallback', e)
+  }
+  return MOCK_SLOTS
 }
 
 export async function addSlot(slot: any) {
-  const slots = getLocalSlots();
-  slots.push(slot);
-  saveLocalSlots();
-  return { success: true, data: slot };
+  try {
+    const res = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(slot)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addSlot error', e)
+  }
+  return { success: false, error: 'Failed to add slot' }
 }
 
 export async function removeSlot(id: string) {
-  let slots = getLocalSlots();
-  slots = slots.filter(s => s.id !== id);
-  localSlots = slots;
-  saveLocalSlots();
-  return { success: true };
-}
-
-// Helper to load and save bookings to localStorage
-let localBookings: any[] = [];
-
-export function getLocalBookings() {
-  if (localBookings.length > 0) return localBookings;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_bookings');
-    if (stored) {
-      try {
-        localBookings = JSON.parse(stored);
-        return localBookings;
-      } catch (e) {
-        console.error("Failed to parse local storage bookings", e);
-      }
-    }
-    localStorage.setItem('narva_bookings', JSON.stringify(MOCK_BOOKINGS));
+  try {
+    const res = await fetch(`/api/slots?id=${id}`, { method: 'DELETE' })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('removeSlot error', e)
   }
-  localBookings = [...MOCK_BOOKINGS];
-  return localBookings;
+  return { success: false, error: 'Failed to remove slot' }
 }
 
-export function saveLocalBookings() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_bookings', JSON.stringify(localBookings));
-  }
-}
+// ─── Consultation Bookings ─────────────────────────────────────────────────────
 
 export async function getBookings() {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('consultation_bookings').select('*')
-      if (!error && data) return data
-    } catch (e) {
-      console.warn(e)
-    }
+  try {
+    const res = await fetch('/api/consultations')
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.warn('getBookings fallback', e)
   }
-  return getLocalBookings();
+  return []
 }
 
-export async function getSlots() {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('consultation_slots').select('*')
-      if (!error && data && data.length > 0) return data
-    } catch (e) {
-      console.warn(e)
-    }
+export async function bookSlot(booking: {
+  slotId: string; name: string; email: string; phone: string; notes: string; specialty: string
+}) {
+  try {
+    const res = await fetch('/api/consultations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(booking)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('bookSlot error', e)
   }
-  return getLocalSlots();
+  return { success: false, error: 'Failed to book slot' }
 }
 
-export async function bookSlot(booking: { slotId: string; name: string; email: string; phone: string; notes: string; specialty: string }) {
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createBrowserClient()
-      const { data, error } = await supabase.from('consultation_bookings').insert([{
-        slot_id: booking.slotId,
-        customer_name: booking.name,
-        customer_email: booking.email,
-        customer_phone: booking.phone,
-        notes: `${booking.specialty} - ${booking.notes}`,
-        status: 'confirmed',
-        meeting_link: 'https://meet.google.com/abc-defg-hij'
-      }])
-      
-      if (!error) {
-        await supabase.from('consultation_slots').update({ is_booked: true, booking_id: (data as any)?.[0]?.id }).eq('id', booking.slotId)
-        return { success: true, meetingLink: 'https://meet.google.com/abc-defg-hij' }
-      }
-    } catch (e) {
-      console.error(e)
+// ─── Coupons ───────────────────────────────────────────────────────────────────
+
+export async function getCoupons() {
+  try {
+    const res = await fetch('/api/coupons')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.length > 0) return data
     }
+  } catch (e) {
+    console.warn('getCoupons fallback', e)
   }
-
-  // Fallback locally
-  const slots = getLocalSlots();
-  const slot = slots.find(s => s.id === booking.slotId);
-  if (slot) {
-    slot.is_booked = true;
-    saveLocalSlots();
-  }
-
-  // Create new booking record
-  const bookings = getLocalBookings();
-  const newBooking = {
-    id: 'b_' + Date.now(),
-    slot_id: booking.slotId,
-    customer_name: booking.name,
-    customer_email: booking.email,
-    customer_phone: booking.phone,
-    notes: `${booking.specialty} - ${booking.notes}`,
-    status: 'confirmed',
-    created_at: new Date().toISOString()
-  };
-  bookings.push(newBooking);
-  saveLocalBookings();
-
-  return { success: true, meetingLink: 'https://meet.google.com/abc-defg-hij' };
-}
-
-export const MOCK_SUBSCRIBERS = [
-  { id: 'sub1', email: 'arya@example.com', name: 'Arya Sharma', joined: '2026-06-24', source: 'Homepage CTA' },
-  { id: 'sub2', email: 'priya.k@gmail.com', name: 'Priya K.', joined: '2026-06-22', source: 'Footer' },
-  { id: 'sub3', email: 'health@vikramnair.com', name: 'Vikram N.', joined: '2026-06-20', source: 'Blog Post' },
-  { id: 'sub4', email: 'meena.s@outlook.com', name: 'Meena S.', joined: '2026-06-19', source: 'Homepage CTA' },
-  { id: 'sub5', email: 'kabir.docs@gmail.com', name: 'Dr. Kabir Sen', joined: '2026-06-15', source: 'Science Page' },
-  { id: 'sub6', email: 'aditi.rao@yahoo.com', name: 'Aditi Rao', joined: '2026-06-10', source: 'Blog Post' }
-];
-
-// Helper to load and save coupons to localStorage
-let localCoupons: any[] = [];
-
-export function getLocalCoupons() {
-  if (localCoupons.length > 0) return localCoupons;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_coupons');
-    if (stored) {
-      try {
-        localCoupons = JSON.parse(stored);
-        return localCoupons;
-      } catch (e) {
-        console.error("Failed to parse local storage coupons", e);
-      }
-    }
-    localStorage.setItem('narva_coupons', JSON.stringify(MOCK_COUPONS));
-  }
-  localCoupons = [...MOCK_COUPONS];
-  return localCoupons;
-}
-
-export function saveLocalCoupons() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_coupons', JSON.stringify(localCoupons));
-  }
+  return MOCK_COUPONS
 }
 
 export async function addCoupon(coupon: any) {
-  const coupons = getLocalCoupons();
-  coupons.push(coupon);
-  saveLocalCoupons();
-  return { success: true, data: coupon };
+  try {
+    const res = await fetch('/api/coupons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(coupon)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addCoupon error', e)
+  }
+  return { success: false, error: 'Failed to add coupon' }
 }
 
 export async function removeCoupon(code: string) {
-  let coupons = getLocalCoupons();
-  coupons = coupons.filter(c => c.code.toUpperCase() !== code.toUpperCase());
-  localCoupons = coupons;
-  saveLocalCoupons();
-  return { success: true };
-}
-
-export async function getCoupons() {
-  return getLocalCoupons();
-}
-
-// Helper to load and save subscribers to localStorage
-let localSubscribers: any[] = [];
-
-export function getLocalSubscribers() {
-  if (localSubscribers.length > 0) return localSubscribers;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('narva_subscribers');
-    if (stored) {
-      try {
-        localSubscribers = JSON.parse(stored);
-        return localSubscribers;
-      } catch (e) {
-        console.error("Failed to parse local storage subscribers", e);
-      }
-    }
-    localStorage.setItem('narva_subscribers', JSON.stringify(MOCK_SUBSCRIBERS));
+  try {
+    const res = await fetch(`/api/coupons?code=${code}`, { method: 'DELETE' })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('removeCoupon error', e)
   }
-  localSubscribers = [...MOCK_SUBSCRIBERS];
-  return localSubscribers;
-}
-
-export function saveLocalSubscribers() {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('narva_subscribers', JSON.stringify(localSubscribers));
-  }
-}
-
-export async function addSubscriber(sub: { email: string; name?: string; source?: string }) {
-  const subscribersList = getLocalSubscribers();
-  if (subscribersList.some(s => s.email.toLowerCase() === sub.email.toLowerCase())) {
-    return { success: true, message: 'Already subscribed' };
-  }
-  const newSub = {
-    id: 'sub_' + Date.now(),
-    email: sub.email,
-    name: sub.name || sub.email.split('@')[0],
-    joined: new Date().toISOString().split('T')[0],
-    source: sub.source || 'Website'
-  };
-  subscribersList.unshift(newSub);
-  saveLocalSubscribers();
-  return { success: true, data: newSub };
-}
-
-export async function getSubscribers() {
-  return getLocalSubscribers();
+  return { success: false, error: 'Failed to remove coupon' }
 }
 
 export async function validateCoupon(code: string, subtotal: number) {
-  const couponsList = getLocalCoupons();
-  const coupon = couponsList.find(c => c.code.toUpperCase() === code.toUpperCase());
-  if (!coupon) return { valid: false, message: 'Invalid coupon code.' };
-  if (subtotal < coupon.min_order_value) return { valid: false, message: `Minimum order value for this coupon is ₹${coupon.min_order_value}.` };
-  
-  let discount = 0;
-  if (coupon.type === 'pct') {
-    discount = (subtotal * coupon.value) / 100;
-    if (coupon.max_discount && discount > coupon.max_discount) {
-      discount = coupon.max_discount;
+  try {
+    const res = await fetch(`/api/coupons?validate=${encodeURIComponent(code)}`)
+    if (res.ok) {
+      const result = await res.json()
+      if (!result.valid) return result
+
+      const coupon = result.coupon
+      if (subtotal < coupon.min_order_value) {
+        return { valid: false, message: `Minimum order value for this coupon is ₹${coupon.min_order_value}.` }
+      }
+
+      let discount = 0
+      if (coupon.type === 'pct') {
+        discount = (subtotal * coupon.value) / 100
+        if (coupon.max_discount && discount > coupon.max_discount) discount = coupon.max_discount
+      } else if (coupon.type === 'flat') {
+        discount = coupon.value
+      } else if (coupon.type === 'free_shipping') {
+        discount = 40
+      }
+
+      return { valid: true, discount, type: coupon.type }
     }
-  } else if (coupon.type === 'flat') {
-    discount = coupon.value;
-  } else if (coupon.type === 'free_shipping') {
-    discount = 40; // Shipping charge threshold discount
+  } catch (e) {
+    console.warn('validateCoupon fallback', e)
   }
 
-  return { valid: true, discount, type: coupon.type };
+  // Fallback to local mock validation
+  const coupon = MOCK_COUPONS.find(c => c.code.toUpperCase() === code.toUpperCase())
+  if (!coupon) return { valid: false, message: 'Invalid coupon code.' }
+  if (subtotal < coupon.min_order_value) {
+    return { valid: false, message: `Minimum order value for this coupon is ₹${coupon.min_order_value}.` }
+  }
+  let discount = 0
+  if (coupon.type === 'pct') {
+    discount = (subtotal * coupon.value) / 100
+    if (coupon.max_discount && discount > coupon.max_discount) discount = coupon.max_discount
+  } else if (coupon.type === 'flat') {
+    discount = coupon.value
+  } else if (coupon.type === 'free_shipping') {
+    discount = 40
+  }
+  return { valid: true, discount, type: coupon.type }
+}
+
+// ─── Subscribers ───────────────────────────────────────────────────────────────
+
+export async function getSubscribers() {
+  try {
+    const res = await fetch('/api/subscribers')
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.warn('getSubscribers fallback', e)
+  }
+  return MOCK_SUBSCRIBERS
+}
+
+export async function addSubscriber(sub: { email: string; name?: string; source?: string }) {
+  try {
+    const res = await fetch('/api/subscribers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('addSubscriber error', e)
+  }
+  return { success: false, error: 'Failed to subscribe' }
+}
+
+// ─── Orders ────────────────────────────────────────────────────────────────────
+
+export async function getOrders() {
+  try {
+    const res = await fetch('/api/orders')
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.warn('getOrders fallback', e)
+  }
+  return []
+}
+
+export async function createOrder(orderData: {
+  email: string; fullName: string; phone: string;
+  line1: string; line2?: string; city: string; state: string; pincode: string;
+  items: Array<{ productId: string; name: string; price: number; quantity: number }>;
+  subtotal: number; discount: number; shipping: number; total: number;
+  couponCode?: string; paymentId?: string; paymentMethod?: string;
+}) {
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('createOrder error', e)
+  }
+  return { success: false, error: 'Failed to create order' }
+}
+
+export async function updateOrder(id: string, fields: any) {
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...fields })
+    })
+    if (res.ok) return await res.json()
+  } catch (e) {
+    console.error('updateOrder error', e)
+  }
+  return { success: false, error: 'Failed to update order' }
 }
