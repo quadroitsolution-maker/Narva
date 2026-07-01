@@ -25,6 +25,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 3. Subdomain routing: Rewrite shop.narva.in (and shop.localhost) root to /products catalog internally
+  const host = request.headers.get('host') || ''
+  if (host.startsWith('shop.narva.in') || host.startsWith('shop.localhost')) {
+    if (url.pathname === '/') {
+      url.pathname = '/products'
+      return NextResponse.rewrite(url)
+    }
+  }
+
   return await updateSession(request)
 }
 
