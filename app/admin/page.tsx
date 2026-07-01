@@ -712,15 +712,15 @@ export default function AdminDashboard() {
                   <span>Action</span>
                 </div>
                 <div className="divide-y divide-premium-gold/8">
-                  {orders.filter(o => o.id.includes(orderSearch) || o.customer.toLowerCase().includes(orderSearch.toLowerCase())).map(o => (
+                  {orders.filter(o => o.id.includes(orderSearch) || (o.customer_name || o.customer || '').toLowerCase().includes(orderSearch.toLowerCase())).map(o => (
                     <div key={o.id} className="grid grid-cols-7 gap-4 px-5 py-4 items-center text-xs hover:bg-warm-beige/10 dark:hover:bg-dark-card/20 transition-colors">
                       <span className="font-mono text-premium-gold text-[11px]">{o.id}</span>
                       <div className="col-span-2">
-                        <p className="font-medium">{o.customer}</p>
-                        <p className="text-[10px] text-matte-black/40 dark:text-dark-text/40">{o.email}</p>
+                        <p className="font-medium">{o.customer_name || o.customer || '—'}</p>
+                        <p className="text-[10px] text-matte-black/40 dark:text-dark-text/40">{o.customer_email || o.email || '—'}</p>
                       </div>
-                      <span className="text-[11px]">{o.date}</span>
-                      <span className="font-semibold">₹{o.amount}</span>
+                      <span className="text-[11px]">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN') : o.date || '—'}</span>
+                      <span className="font-semibold">₹{o.total || o.amount || 0}</span>
                       <StatusBadge status={o.status} />
                       <button
                         onClick={() => setSelectedOrder(o)}
