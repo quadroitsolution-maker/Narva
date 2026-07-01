@@ -8,7 +8,7 @@ import { useCart } from '@/lib/store'
 import { createOrder } from '@/lib/db'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
-
+import { createClient } from '@/lib/supabase/client'
 export default function CheckoutPage() {
   const { items, getTotals, clearCart, couponCode } = useCart()
   const { subtotal, discount, shipping, total } = getTotals()
@@ -28,10 +28,21 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState('')
   const [paying, setPaying] = useState(false)
   const [orderError, setOrderError] = useState('')
+  const [customerId, setCustomerId] = useState<string | null>(null)
 
   useEffect(() => {
     // Temporary display ID until Supabase returns a real one
     setOrderId('ord_' + Math.random().toString(36).substring(2, 11).toUpperCase())
+
+    // Check user auth session
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCustomerId(user.id)
+        if (user.email) setEmail(user.email)
+        if (user.user_metadata?.full_name) setFullName(user.user_metadata.full_name)
+      }
+    })
   }, [])
 
   const handleAddressSubmit = (e: React.FormEvent) => {
@@ -68,7 +79,8 @@ export default function CheckoutPage() {
         shipping,
         total,
         couponCode: couponCode || undefined,
-        paymentMethod: 'razorpay_simulated'
+        paymentMethod: 'razorpay_simulated',
+        customerId: customerId || undefined
       })
 
       if (result?.orderId) {

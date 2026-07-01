@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ShoppingBag, Sun, Moon, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingBag, Sun, Moon, Menu, X, ChevronDown, User } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { useCart } from '@/lib/store'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -109,6 +109,15 @@ export default function Navbar() {
                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
               </button>
 
+              {/* User Account */}
+              <Link
+                href="/account"
+                className="p-2 text-neutral-500 hover:text-[#1a1a1a] transition-colors"
+                aria-label="User Account"
+              >
+                <User size={18} />
+              </Link>
+
               {/* Cart */}
               <button
                 onClick={() => setCartOpen(true)}
@@ -177,6 +186,17 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block py-3 text-sm font-semibold tracking-[0.08em] uppercase border-b border-neutral-50 transition-colors ${
+                  isLinkActive('/account')
+                    ? 'text-[#1a1a1a]'
+                    : 'text-neutral-500 hover:text-[#1a1a1a]'
+                }`}
+              >
+                Account
+              </Link>
               <div className="pt-4">
                 <Link
                   href="/products/melatonin-gummies"

@@ -525,6 +525,7 @@ export async function createOrder(orderData: {
   items: Array<{ productId: string; name: string; price: number; quantity: number }>;
   subtotal: number; discount: number; shipping: number; total: number;
   couponCode?: string; paymentId?: string; paymentMethod?: string;
+  customerId?: string;
 }) {
   try {
     const res = await fetch('/api/orders', {
