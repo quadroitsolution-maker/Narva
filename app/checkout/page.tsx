@@ -391,7 +391,7 @@ export default function CheckoutPage() {
                 {/* Info block */}
                 <div className="p-5 rounded-2xl border border-premium-gold/15 bg-warm-beige/25 dark:bg-dark-card/20 space-y-3 text-left text-xs max-w-xs mx-auto">
                   <p><strong>Order Reference:</strong> <span className="font-mono text-[10px]">{orderId}</span></p>
-                  <p><strong>Patient Recipient:</strong> {fullName}</p>
+                  <p><strong>Customer Recipient:</strong> {fullName}</p>
                   <p><strong>Est. Delivery:</strong> 3-4 Business Days (via Blue Dart)</p>
                 </div>
 

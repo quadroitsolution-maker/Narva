@@ -176,7 +176,7 @@ export default function AccountPage() {
                   </div>
                   <h2 className="font-serif text-2xl font-light">
                     {view === 'login' && 'Welcome Back'}
-                    {view === 'signup' && 'Create Patient Account'}
+                    {view === 'signup' && 'Create Customer Account'}
                     {view === 'magic-link' && 'Passwordless Login'}
                   </h2>
                   <p className="text-xs text-matte-black/60 dark:text-dark-text/60 max-w-xs mx-auto">
@@ -365,7 +365,7 @@ export default function AccountPage() {
             </motion.div>
           )}
 
-          {/* ── AUTHENTICATED PATIENT PORTAL (DASHBOARD) ── */}
+          {/* ── AUTHENTICATED CUSTOMER PORTAL (DASHBOARD) ── */}
           {view === 'dashboard' && (
             <motion.div
               key="dashboard-container"
@@ -378,7 +378,7 @@ export default function AccountPage() {
               {/* Profile Header */}
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 bg-warm-beige/10 dark:bg-dark-card/25 border border-premium-gold/15 p-6 sm:p-8 rounded-3xl">
                 <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-premium-gold">Patient Portal</span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-premium-gold">Customer Portal</span>
                   <h2 className="font-serif text-3xl font-light">Hello, <span className="italic">{user?.user_metadata?.full_name || user?.email.split('@')[0]}</span></h2>
                   <p className="text-xs text-matte-black/60 dark:text-dark-text/60">Registered email: <span className="font-mono text-premium-gold">{user?.email}</span></p>
                 </div>

@@ -46,7 +46,7 @@ export default function Footer() {
         { label: 'FAQs', href: '/products/melatonin-gummies#faq' },
         { label: 'Shipping & Delivery', href: '/policies/shipping' },
         { label: 'Returns & Refunds', href: '/policies/refund' },
-        { label: 'Patient Portal', href: '/account' }
+        { label: 'Customer Portal', href: '/account' }
       ]
     }
   ]
