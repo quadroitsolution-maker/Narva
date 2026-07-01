@@ -1,7 +1,30 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  const url = request.nextUrl.clone()
+
+  // Protect /admin in production using Cloudflare Access headers if enabled
+  if (process.env.NODE_ENV === 'production' && url.pathname.startsWith('/admin')) {
+    const cfJwt = request.headers.get('cf-access-jwt-assertion')
+    const host = request.headers.get('host') || ''
+
+    if (process.env.CLOUDFLARE_ZERO_TRUST_ENABLED === 'true') {
+      // 1. Prevent Vercel deployment URL bypasses by redirecting to the custom domain
+      if (host.includes('.vercel.app')) {
+        const customDomain = process.env.NEXT_PUBLIC_CUSTOM_DOMAIN || 'https://narva.in'
+        return NextResponse.redirect(`${customDomain}${url.pathname}${url.search}`)
+      }
+      // 2. Reject requests that did not pass through Cloudflare Access
+      if (!cfJwt) {
+        return new NextResponse(
+          'Unauthorized: Admin panel is protected by Cloudflare Zero Trust.',
+          { status: 401 }
+        );
+      }
+    }
+  }
+
   return await updateSession(request)
 }
 
