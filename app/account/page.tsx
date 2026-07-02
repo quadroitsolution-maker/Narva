@@ -1,19 +1,30 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   User, ShoppingBag, LogOut, Mail, Lock, Key, ArrowRight, Loader2,
-  CheckCircle2, MapPin, Calendar, CreditCard, ShieldAlert, ArrowLeft, X
+  CheckCircle2, MapPin, Calendar, CreditCard, ShieldAlert, X, Heart,
+  Bell, Ticket, Settings, Grid
 } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// Import Tab Components
+import DashboardTab from '@/components/account/DashboardTab'
+import OrdersTab from '@/components/account/OrdersTab'
+import WishlistTab from '@/components/account/WishlistTab'
+import AddressesTab from '@/components/account/AddressesTab'
+import PaymentTab from '@/components/account/PaymentTab'
+import ProfileTab from '@/components/account/ProfileTab'
+import NotificationsTab from '@/components/account/NotificationsTab'
+import SupportTab from '@/components/account/SupportTab'
+import SettingsTab from '@/components/account/SettingsTab'
+
 type View = 'login' | 'signup' | 'magic-link' | 'dashboard'
+type Tab = 'dashboard' | 'orders' | 'wishlist' | 'addresses' | 'payment' | 'profile' | 'notifications' | 'support' | 'settings'
 
 export default function AccountPage() {
   const router = useRouter()
@@ -24,26 +35,22 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
-  
+  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+
   // Auth Form inputs
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Dashboard Data
-  const [orders, setOrders] = useState<any[]>([])
-  const [ordersLoading, setOrdersLoading] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<any>(null)
-
-  // 1. Check user session on mount
+  // Check user session on mount
   useEffect(() => {
     async function checkUser() {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       if (currentUser) {
         setUser(currentUser)
         setView('dashboard')
-        fetchOrders()
       } else {
         setView('login')
       }
@@ -53,23 +60,7 @@ export default function AccountPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 2. Fetch User Orders
-  async function fetchOrders() {
-    setOrdersLoading(true)
-    try {
-      const res = await fetch('/api/user/orders')
-      if (res.ok) {
-        const data = await res.json()
-        setOrders(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch orders:', err)
-    } finally {
-      setOrdersLoading(false)
-    }
-  }
-
-  // 3. Auth Actions
+  // Auth Actions
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setActionLoading(true)
@@ -87,7 +78,6 @@ export default function AccountPage() {
       setUser(data.user)
       setView('dashboard')
       setActionLoading(false)
-      fetchOrders()
     }
   }
 
@@ -153,8 +143,8 @@ export default function AccountPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
-    setOrders([])
     setView('login')
+    setActiveTab('dashboard')
   }
 
   if (loading) {
@@ -166,11 +156,23 @@ export default function AccountPage() {
     )
   }
 
+  const sidebarItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: <Grid size={15} /> },
+    { id: 'orders', label: 'Orders', icon: <ShoppingBag size={15} /> },
+    { id: 'wishlist', label: 'Wishlist', icon: <Heart size={15} /> },
+    { id: 'addresses', label: 'Addresses', icon: <MapPin size={15} /> },
+    { id: 'payment', label: 'Payment Methods', icon: <CreditCard size={15} /> },
+    { id: 'profile', label: 'Profile details', icon: <User size={15} /> },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={15} /> },
+    { id: 'support', label: 'Support center', icon: <Ticket size={15} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={15} /> }
+  ]
+
   return (
     <div className="min-h-screen bg-matte-white dark:bg-dark-bg transition-colors duration-300 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <AnimatePresence mode="wait">
           
           {/* ── AUTH PAGES (LOGIN / SIGNUP / MAGIC LINK) ── */}
@@ -180,7 +182,7 @@ export default function AccountPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="max-w-md mx-auto w-full"
+              className="max-w-md mx-auto w-full py-10"
             >
               <div className="glass-panel p-8 sm:p-10 rounded-3xl shadow-xl space-y-6">
                 
@@ -195,7 +197,7 @@ export default function AccountPage() {
                     {view === 'magic-link' && 'Passwordless Login'}
                   </h2>
                   <p className="text-xs text-matte-black/60 dark:text-dark-text/60 max-w-xs mx-auto">
-                    {view === 'login' && 'Access order history, tracking metrics, and subscriptions.'}
+                    {view === 'login' && 'Access order history, tracking metrics, and custom addresses.'}
                     {view === 'signup' && 'Sign up to register and automatically track past and future orders.'}
                     {view === 'magic-link' && 'Enter your email to receive a secure one-click sign-in link.'}
                   </p>
@@ -217,83 +219,43 @@ export default function AccountPage() {
                 {view === 'login' && (
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Email Address</label>
+                      <label className="text-[10px] uppercase font-bold text-matte-black/50">Email Address</label>
                       <div className="relative">
                         <input
-                          type="email"
-                          required
-                          placeholder="email@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="email"
+                          value={email} onChange={e => setEmail(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
+                          placeholder="you@email.com"
                         />
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Password</label>
+                        <label className="text-[10px] uppercase font-bold text-matte-black/50">Password</label>
                         <button
                           type="button"
                           onClick={() => setView('magic-link')}
-                          className="text-[9px] font-bold text-premium-gold hover:underline"
+                          className="text-[10px] text-premium-gold hover:underline font-bold"
                         >
                           Forgot Password?
                         </button>
                       </div>
                       <div className="relative">
                         <input
-                          type="password"
-                          required
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="password"
+                          value={password} onChange={e => setPassword(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
                         />
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <button
+                      disabled={actionLoading}
                       type="submit"
-                      disabled={actionLoading}
-                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-premium-gold py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-premium-gold/90 transition-all disabled:opacity-85"
+                      className="w-full bg-premium-gold text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-premium-gold/90 transition-colors flex items-center justify-center gap-1 shadow-md"
                     >
-                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : <>Sign In <ArrowRight size={14} /></>}
-                    </button>
-
-                    <div className="relative flex py-2 items-center">
-                      <div className="flex-grow border-t border-premium-gold/10 dark:border-white/5"></div>
-                      <span className="flex-shrink mx-4 text-[9px] text-matte-black/40 dark:text-dark-text/40 uppercase font-bold tracking-wider">or</span>
-                      <div className="flex-grow border-t border-premium-gold/10 dark:border-white/5"></div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={actionLoading}
-                      className="w-full flex justify-center items-center gap-3 rounded-xl border border-premium-gold/15 dark:border-white/10 py-3.5 text-xs font-bold uppercase tracking-wider hover:bg-warm-beige/10 dark:hover:bg-dark-card/25 transition-all text-matte-black dark:text-dark-text disabled:opacity-80"
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                      </svg>
-                      Continue with Google
+                      {actionLoading ? 'Verifying...' : 'Sign In'} <ArrowRight size={13} />
                     </button>
                   </form>
                 )}
@@ -302,89 +264,46 @@ export default function AccountPage() {
                 {view === 'signup' && (
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Full Name</label>
+                      <label className="text-[10px] uppercase font-bold text-matte-black/50">Full Name</label>
                       <div className="relative">
                         <input
-                          type="text"
-                          required
-                          placeholder="Your name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="text"
+                          value={name} onChange={e => setName(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
+                          placeholder="John Doe"
                         />
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Email Address</label>
+                      <label className="text-[10px] uppercase font-bold text-matte-black/50">Email Address</label>
                       <div className="relative">
                         <input
-                          type="email"
-                          required
-                          placeholder="email@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="email"
+                          value={email} onChange={e => setEmail(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
+                          placeholder="you@email.com"
                         />
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Password</label>
+                      <label className="text-[10px] uppercase font-bold text-matte-black/50">Password</label>
                       <div className="relative">
                         <input
-                          type="password"
-                          required
-                          placeholder="At least 6 characters"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="password" minLength={6}
+                          value={password} onChange={e => setPassword(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
                         />
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <button
+                      disabled={actionLoading}
                       type="submit"
-                      disabled={actionLoading}
-                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-premium-gold py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-premium-gold/90 transition-all disabled:opacity-85"
+                      className="w-full bg-premium-gold text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-premium-gold/90 transition-colors flex items-center justify-center gap-1 shadow-md"
                     >
-                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : <>Create Account <ArrowRight size={14} /></>}
-                    </button>
-
-                    <div className="relative flex py-2 items-center">
-                      <div className="flex-grow border-t border-premium-gold/10 dark:border-white/5"></div>
-                      <span className="flex-shrink mx-4 text-[9px] text-matte-black/40 dark:text-dark-text/40 uppercase font-bold tracking-wider">or</span>
-                      <div className="flex-grow border-t border-premium-gold/10 dark:border-white/5"></div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={actionLoading}
-                      className="w-full flex justify-center items-center gap-3 rounded-xl border border-premium-gold/15 dark:border-white/10 py-3.5 text-xs font-bold uppercase tracking-wider hover:bg-warm-beige/10 dark:hover:bg-dark-card/25 transition-all text-matte-black dark:text-dark-text disabled:opacity-80"
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                      </svg>
-                      Continue with Google
+                      {actionLoading ? 'Creating...' : 'Register Account'} <ArrowRight size={13} />
                     </button>
                   </form>
                 )}
@@ -393,54 +312,78 @@ export default function AccountPage() {
                 {view === 'magic-link' && (
                   <form onSubmit={handleMagicLink} className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-matte-black/50 dark:text-dark-text/50">Email Address</label>
+                      <label className="text-[10px] uppercase font-bold text-matte-black/50">Email Address</label>
                       <div className="relative">
                         <input
-                          type="email"
-                          required
-                          placeholder="email@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-transparent border border-premium-gold/15 dark:border-white/10 text-xs pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-premium-gold/50 transition-colors"
+                          required type="email"
+                          value={email} onChange={e => setEmail(e.target.value)}
+                          className="w-full bg-matte-white dark:bg-dark-bg border border-premium-gold/15 text-xs pl-9 pr-3 py-2.5 rounded-xl focus:outline-none"
+                          placeholder="you@email.com"
                         />
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-matte-black/40 dark:text-dark-text/40" size={14} />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-matte-black/35" size={13} />
                       </div>
                     </div>
-
                     <button
-                      type="submit"
                       disabled={actionLoading}
-                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-premium-gold py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md hover:bg-premium-gold/90 transition-all disabled:opacity-85"
+                      type="submit"
+                      className="w-full bg-premium-gold text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-premium-gold/90 transition-colors flex items-center justify-center gap-1 shadow-md"
                     >
-                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : <>Send Magic Link <Key size={14} /></>}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setView('login')}
-                      className="text-xs font-semibold text-matte-black/50 dark:text-dark-text/50 hover:text-premium-gold flex items-center gap-1.5 mx-auto"
-                    >
-                      <ArrowLeft size={12} /> Back to Sign In
+                      {actionLoading ? 'Sending...' : 'Send Magic Link'} <ArrowRight size={13} />
                     </button>
                   </form>
                 )}
 
-                {/* View switcher links */}
-                {view !== 'magic-link' && (
-                  <div className="text-center pt-2 border-t border-premium-gold/10 text-xs space-y-1">
-                    {view === 'login' ? (
-                      <>
-                        <span className="text-matte-black/50 dark:text-dark-text/50">Don't have an account? </span>
-                        <button onClick={() => setView('signup')} className="font-bold text-premium-gold hover:underline">Sign Up</button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-matte-black/50 dark:text-dark-text/50">Already registered? </span>
-                        <button onClick={() => setView('login')} className="font-bold text-premium-gold hover:underline">Sign In</button>
-                      </>
-                    )}
-                  </div>
-                )}
+                {/* Google OAuth Button */}
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-premium-gold/10"></div>
+                  <span className="flex-shrink mx-4 text-[10px] text-matte-black/35 uppercase font-bold tracking-wider">or sign in with</span>
+                  <div className="flex-grow border-t border-premium-gold/10"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full border border-premium-gold/25 hover:bg-premium-gold/5 text-matte-black dark:text-dark-text text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Google Account
+                </button>
+
+                {/* Footer Switcher */}
+                <div className="text-center pt-2">
+                  {view === 'login' ? (
+                    <p className="text-xs text-matte-black/55">
+                      Don't have an account?{' '}
+                      <button onClick={() => setView('signup')} className="text-premium-gold font-bold hover:underline">
+                        Register here
+                      </button>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-matte-black/55">
+                      Already have an account?{' '}
+                      <button onClick={() => setView('login')} className="text-premium-gold font-bold hover:underline">
+                        Sign In
+                      </button>
+                    </p>
+                  )}
+                </div>
 
               </div>
             </motion.div>
@@ -453,163 +396,123 @@ export default function AccountPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-8"
+              className="flex flex-col lg:flex-row gap-8 py-5"
             >
-              
-              {/* Profile Header */}
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 bg-warm-beige/10 dark:bg-dark-card/25 border border-premium-gold/15 p-6 sm:p-8 rounded-3xl">
-                <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-premium-gold">Customer Portal</span>
-                  <h2 className="font-serif text-3xl font-light">Hello, <span className="italic">{user?.user_metadata?.full_name || user?.email.split('@')[0]}</span></h2>
-                  <p className="text-xs text-matte-black/60 dark:text-dark-text/60">Registered email: <span className="font-mono text-premium-gold">{user?.email}</span></p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 self-start md:self-center border border-red-500/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider text-red-500 transition-colors"
-                >
-                  <LogOut size={13} /> Sign Out
-                </button>
-              </div>
-
-              {/* Order History Panel */}
-              <div className="space-y-4">
-                <h3 className="font-serif text-xl border-b border-premium-gold/10 pb-2">Order History</h3>
-
-                {ordersLoading ? (
-                  <div className="py-12 text-center flex flex-col items-center">
-                    <Loader2 className="animate-spin text-premium-gold" size={24} />
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-premium-gold mt-2">Retrieving orders...</p>
+              {/* Left Sidebar Navigation */}
+              <aside className="w-full lg:w-64 flex-shrink-0">
+                <div className="glass-panel p-5 rounded-2xl border border-premium-gold/10 lg:sticky lg:top-24 space-y-4">
+                  
+                  {/* Small Profile Summary in Sidebar */}
+                  <div className="flex items-center gap-3 border-b border-premium-gold/10 pb-4">
+                    <div className="w-10 h-10 rounded-full bg-premium-gold/10 border border-premium-gold/25 flex items-center justify-center text-premium-gold text-sm font-serif font-light">
+                      {user.email[0].toUpperCase()}
+                    </div>
+                    <div className="truncate">
+                      <span className="block text-[8px] uppercase tracking-widest text-premium-gold font-bold">Logged In</span>
+                      <p className="text-xs font-medium truncate text-matte-black/75 dark:text-dark-text/75">{user.email}</p>
+                    </div>
                   </div>
-                ) : orders.length === 0 ? (
-                  <div className="glass-panel p-10 rounded-3xl text-center space-y-4 border border-premium-gold/10">
-                    <ShoppingBag className="text-premium-gold mx-auto" size={32} />
-                    <h4 className="font-serif text-lg">No Orders Registered</h4>
-                    <p className="text-xs text-matte-black/50 dark:text-dark-text/50 max-w-sm mx-auto leading-relaxed">
-                      We couldn't find any orders placed under this email. Go checkout sleep aids to track your sleep scores!
-                    </p>
-                    <Link
-                      href="/products"
-                      className="inline-block rounded-full bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-[0.1em] px-6 py-3 hover:bg-neutral-800 transition-colors"
-                    >
-                      Shop Supplement
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {orders.map((o) => (
-                      <div
-                        key={o.id}
-                        className="glass-panel p-6 rounded-3xl border border-premium-gold/10 space-y-4 hover:border-premium-gold/30 transition-all flex flex-col justify-between"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center text-[10px] uppercase tracking-wider">
-                            <span className="font-mono text-premium-gold">{o.id.substring(0, 8)}...</span>
-                            <span className="font-semibold text-matte-black/60 dark:text-dark-text/60">
-                              {new Date(o.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
-                            </span>
-                          </div>
 
-                          <div className="border-t border-premium-gold/5 pt-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-matte-black/40 dark:text-dark-text/40">Product</p>
-                            <p className="text-xs font-semibold mt-0.5">
-                              {o.order_items?.[0]?.products?.name || 'Narva Health Supplement'}
-                              {o.order_items && o.order_items.length > 1 && ` (+${o.order_items.length - 1} items)`}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 border-t border-premium-gold/5 pt-3">
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-matte-black/40 dark:text-dark-text/40">Status</p>
-                              <span className="inline-block bg-premium-gold/10 text-premium-gold px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest mt-1">
-                                {o.status}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-matte-black/40 dark:text-dark-text/40">Amount Paid</p>
-                              <p className="text-sm font-serif font-semibold mt-0.5">₹{o.total}</p>
-                            </div>
-                          </div>
-                        </div>
-
+                  {/* Nav list */}
+                  <nav className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-1.5 scrollbar-thin">
+                    {sidebarItems.map(item => {
+                      const isActive = activeTab === item.id
+                      return (
                         <button
-                          onClick={() => setSelectedOrder(o)}
-                          className="w-full text-center border border-premium-gold/15 hover:border-premium-gold/50 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider text-premium-gold transition-colors mt-4"
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id)
+                            setSelectedOrderId(null)
+                          }}
+                          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all duration-200 flex-shrink-0 text-left ${
+                            isActive
+                              ? 'bg-premium-gold text-white shadow-md'
+                              : 'text-matte-black/60 dark:text-dark-text/60 hover:bg-warm-beige/10 hover:text-premium-gold'
+                          }`}
                         >
-                          View Details &amp; Tracking
+                          {item.icon}
+                          <span>{item.label}</span>
                         </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      )
+                    })}
+                  </nav>
 
-              {/* Order Detail Modal */}
-              <AnimatePresence>
-                {selectedOrder && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                </div>
+              </aside>
+
+              {/* Right Panel Main View */}
+              <section className="flex-grow min-w-0">
+                <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-premium-gold/10 bg-warm-beige/5 min-h-[50vh]">
+                  <AnimatePresence mode="wait">
                     <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.95, opacity: 0 }}
-                      className="glass-panel w-full max-w-md rounded-3xl p-7 shadow-2xl border border-premium-gold/15 space-y-5 relative"
+                      key={activeTab}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <button
-                        onClick={() => setSelectedOrder(null)}
-                        className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-warm-beige/50 transition-colors"
-                      >
-                        <X size={15} />
-                      </button>
-
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-premium-gold">Order Details</span>
-                        <h3 className="font-mono text-sm mt-0.5 text-matte-black/60 dark:text-dark-text/60">{selectedOrder.id}</h3>
-                      </div>
-
-                      <div className="space-y-2.5 text-xs border border-premium-gold/10 rounded-xl p-4 bg-warm-beige/20 dark:bg-dark-card/30">
-                        <div className="flex gap-2">
-                          <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">Status:</span>
-                          <span className="uppercase font-bold tracking-wide text-premium-gold">{selectedOrder.status}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">Date:</span>
-                          <span>{new Date(selectedOrder.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' })}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">Total Paid:</span>
-                          <span className="font-semibold">₹{selectedOrder.total}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">Delivery:</span>
-                          <span>{selectedOrder.addresses?.line1}, {selectedOrder.addresses?.city} - {selectedOrder.addresses?.pincode}</span>
-                        </div>
-                        {selectedOrder.tracking_number && (
-                          <div className="flex gap-2 border-t border-premium-gold/10 pt-2.5 mt-2.5">
-                            <span className="font-bold w-20 flex-shrink-0 text-matte-black/50 dark:text-dark-text/50">Tracking:</span>
-                            <div>
-                              <p className="font-semibold text-premium-gold">{selectedOrder.tracking_number}</p>
-                              <p className="text-[9px] text-matte-black/40 dark:text-dark-text/40 uppercase mt-0.5">Carrier: {selectedOrder.courier || 'Blue Dart'}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Items List */}
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-matte-black/40 dark:text-dark-text/40">Items</p>
-                        <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
-                          {selectedOrder.order_items?.map((item: any) => (
-                            <div key={item.id} className="flex justify-between items-center text-xs">
-                              <span className="font-medium text-matte-black/80 dark:text-dark-text/80">{item.products?.name || 'Supplement'} × {item.quantity}</span>
-                              <span className="font-bold">₹{item.total_price}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
+                      {activeTab === 'dashboard' && (
+                        <DashboardTab
+                          supabase={supabase}
+                          user={user}
+                          setActiveTab={setActiveTab}
+                          setSelectedOrderId={setSelectedOrderId}
+                        />
+                      )}
+                      {activeTab === 'orders' && (
+                        <OrdersTab
+                          supabase={supabase}
+                          user={user}
+                          selectedOrderId={selectedOrderId}
+                          setSelectedOrderId={setSelectedOrderId}
+                        />
+                      )}
+                      {activeTab === 'wishlist' && (
+                        <WishlistTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'addresses' && (
+                        <AddressesTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'payment' && (
+                        <PaymentTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'profile' && (
+                        <ProfileTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'notifications' && (
+                        <NotificationsTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'support' && (
+                        <SupportTab
+                          supabase={supabase}
+                          user={user}
+                        />
+                      )}
+                      {activeTab === 'settings' && (
+                        <SettingsTab
+                          supabase={supabase}
+                          onLogout={handleLogout}
+                        />
+                      )}
                     </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
+                  </AnimatePresence>
+                </div>
+              </section>
 
             </motion.div>
           )}
