@@ -18,6 +18,7 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category TEXT;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
 -- 4. Enable public read policy on categories
+DROP POLICY IF EXISTS "categories_public_read" ON public.categories;
 CREATE POLICY "categories_public_read" ON public.categories
     FOR SELECT USING (TRUE);
 

@@ -68,11 +68,22 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 
 -- 8. RLS Policies
+DROP POLICY IF EXISTS "profiles_self" ON public.profiles;
 CREATE POLICY "profiles_self" ON public.profiles FOR ALL USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "wishlist_self" ON public.wishlist;
 CREATE POLICY "wishlist_self" ON public.wishlist FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "payment_methods_self" ON public.payment_methods;
 CREATE POLICY "payment_methods_self" ON public.payment_methods FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "notifications_self" ON public.notifications;
 CREATE POLICY "notifications_self" ON public.notifications FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "support_tickets_self" ON public.support_tickets;
 CREATE POLICY "support_tickets_self" ON public.support_tickets FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "addresses_user_self" ON public.addresses;
 CREATE POLICY "addresses_user_self" ON public.addresses FOR ALL USING (auth.uid() = user_id OR customer_id = auth.uid());
 
 -- 9. Trigger to auto-create Profiles
@@ -100,7 +111,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created_profile
+DROP TRIGGER IF EXISTS on_auth_user_created_profile ON auth.users;
+CREATE TRIGGER on_auth_user_created_profile
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_profile();
 
@@ -108,14 +120,18 @@ CREATE OR REPLACE TRIGGER on_auth_user_created_profile
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "avatars_read" ON storage.objects;
 CREATE POLICY "avatars_read" ON storage.objects
     FOR SELECT USING (bucket_id = 'avatars');
 
+DROP POLICY IF EXISTS "avatars_write" ON storage.objects;
 CREATE POLICY "avatars_write" ON storage.objects
     FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
+DROP POLICY IF EXISTS "avatars_update" ON storage.objects;
 CREATE POLICY "avatars_update" ON storage.objects
     FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
+DROP POLICY IF EXISTS "avatars_delete" ON storage.objects;
 CREATE POLICY "avatars_delete" ON storage.objects
     FOR DELETE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
